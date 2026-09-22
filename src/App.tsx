@@ -114,7 +114,13 @@ export default function App() {
   const handleSaveDudi = async (data: Omit<Dudi, 'id'>, id?: string) => {
     if (id) {
       const updated = await dataService.updateDudi(id, data);
-      setDudiList((prev) => prev.map((item) => (item.id === id ? updated : item)));
+      setDudiList((prev) =>
+        prev.map((item) =>
+          item.id === id || item.id === updated.id || (item.no === updated.no && item.no !== undefined)
+            ? updated
+            : item
+        )
+      );
     } else {
       const created = await dataService.createDudi(data);
       setDudiList((prev) => [...prev, created]);

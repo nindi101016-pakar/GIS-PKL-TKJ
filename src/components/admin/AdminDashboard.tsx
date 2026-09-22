@@ -173,29 +173,89 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const copySqlToClipboard = () => {
     const sqlText = `-- ============================================================================
--- SKEMA SUPABASE LENGKAP (VERSI FINAL - SMKN 1 SONGGOM)
--- Salin dan jalankan di SQL Editor Supabase
+-- SKEMA BASIS DATA SUPABASE RESMI (VERSI TERBARU & TERTATA RAPI)
+-- SISTEM INFORMASI GEOGRAFIS (GIS) PEMETAAN TEMPAT PKL TKJ
+-- SMK NEGERI 1 SONGGOM - BREBES DAN SEKITARNYA
+-- ============================================================================
+-- 4 TABEL UTAMA PENGATUR ISIAN APLIKASI:
+-- 1. public.admin       : Data pengguna administrator sistem
+-- 2. public.dudi        : Data tempat PKL / Mitra Industri Vokasi TKJ
+-- 3. public.pengaturan  : Data konfigurasi teks hero, kejuruan TKJ, & kontak
+-- 4. public.galeri      : Data dokumentasi foto kegiatan praktik siswa
+--
+-- DILENGKAPI:
+-- Registrasi langsung ke Supabase Authentication (auth.users) agar akun
+-- admin resmi Pak Aryanoe (pakaryanoe@gmail.com) langsung terdaftar di menu
+-- "Authentication -> Users" dashboard Supabase Anda!
 -- ============================================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 1. TABEL ADMIN USERS
-CREATE TABLE IF NOT EXISTS public.admin_users (
+-- 1. PENDAFTARAN RESMI KE SUPABASE AUTHENTICATION (auth.users & auth.identities)
+DO $$
+DECLARE
+    superadmin_uid UUID := 'a0000000-0000-0000-0000-000000000001'::uuid;
+BEGIN
+    INSERT INTO auth.users (
+        instance_id, id, aud, role, email, encrypted_password,
+        email_confirmed_at, recovery_sent_at, last_sign_in_at,
+        raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+        confirmation_token, email_change, email_change_token_new, recovery_token
+    )
+    VALUES (
+        '00000000-0000-0000-0000-000000000000',
+        superadmin_uid,
+        'authenticated',
+        'authenticated',
+        'pakaryanoe@gmail.com',
+        crypt('@PTKsonggom1', gen_salt('bf')),
+        timezone('utc'::text, now()), timezone('utc'::text, now()), timezone('utc'::text, now()),
+        '{"provider":"email","providers":["email"]}'::jsonb,
+        '{"full_name":"Pak Aryanoe (Administrator GIS SMKN 1 Songgom)","role":"superadmin"}'::jsonb,
+        timezone('utc'::text, now()), timezone('utc'::text, now()), '', '', '', ''
+    )
+    ON CONFLICT (id) DO UPDATE
+    SET encrypted_password = crypt('@PTKsonggom1', gen_salt('bf')),
+        email = 'pakaryanoe@gmail.com',
+        email_confirmed_at = timezone('utc'::text, now()),
+        updated_at = timezone('utc'::text, now()),
+        raw_user_meta_data = '{"full_name":"Pak Aryanoe (Administrator GIS SMKN 1 Songgom)","role":"superadmin"}'::jsonb;
+
+    INSERT INTO auth.identities (
+        id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+    )
+    VALUES (
+        'a0000000-0000-0000-0000-000000000001',
+        superadmin_uid,
+        jsonb_build_object('sub', superadmin_uid::text, 'email', 'pakaryanoe@gmail.com'),
+        'email',
+        timezone('utc'::text, now()), timezone('utc'::text, now()), timezone('utc'::text, now())
+    )
+    ON CONFLICT (provider, id) DO UPDATE
+    SET identity_data = jsonb_build_object('sub', superadmin_uid::text, 'email', 'pakaryanoe@gmail.com'),
+        updated_at = timezone('utc'::text, now());
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Notice on auth.users insert: %', SQLERRM;
+END $$;
+
+-- 2. TABEL 1: ADMIN (public.admin)
+CREATE TABLE IF NOT EXISTS public.admin (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(255) NOT NULL,
-    role VARCHAR(50) DEFAULT 'admin',
+    role VARCHAR(50) DEFAULT 'superadmin',
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     last_login TIMESTAMP WITH TIME ZONE
 );
-CREATE INDEX IF NOT EXISTS idx_admin_users_email ON public.admin_users(email);
+CREATE INDEX IF NOT EXISTS idx_admin_email ON public.admin(email);
 
--- 2. TABEL TEMPAT PKL / DUDI
+-- 3. TABEL 2: DUDI / TEMPAT PKL (public.dudi)
 CREATE TABLE IF NOT EXISTS public.dudi (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT PRIMARY KEY,
     no INT NOT NULL,
     nama_dudi VARCHAR(255) NOT NULL,
     maksimal_siswa INT DEFAULT 4,
@@ -207,63 +267,57 @@ CREATE TABLE IF NOT EXISTS public.dudi (
     latitude NUMERIC(10, 6) NOT NULL,
     longitude NUMERIC(10, 6) NOT NULL,
     no_hp VARCHAR(50),
-    jaminan VARCHAR(100),
+    jaminan VARCHAR(100) DEFAULT '-',
     nominal NUMERIC(12, 2) DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_dudi_no ON public.dudi(no);
 CREATE INDEX IF NOT EXISTS idx_dudi_kabupaten ON public.dudi(kabupaten);
+CREATE INDEX IF NOT EXISTS idx_dudi_nama ON public.dudi(nama_dudi);
 
--- 3. TABEL CMS CONTENT
-CREATE TABLE IF NOT EXISTS public.cms_content (
-    key VARCHAR(100) PRIMARY KEY,
-    value JSONB NOT NULL,
+-- 4. TABEL 3: PENGATURAN KONTEN APLIKASI (public.pengaturan)
+CREATE TABLE IF NOT EXISTS public.pengaturan (
+    kunci VARCHAR(100) PRIMARY KEY,
+    nilai JSONB NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 4. TABEL GALERI
-CREATE TABLE IF NOT EXISTS public.gallery (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title VARCHAR(255) NOT NULL,
-    category VARCHAR(100) DEFAULT 'Instalasi Jaringan',
-    image_url TEXT NOT NULL,
-    description TEXT,
-    date VARCHAR(50),
+-- 5. TABEL 4: GALERI DOKUMENTASI (public.galeri)
+CREATE TABLE IF NOT EXISTS public.galeri (
+    id TEXT PRIMARY KEY,
+    judul VARCHAR(255) NOT NULL,
+    kategori VARCHAR(100) DEFAULT 'Instalasi Jaringan',
+    url_gambar TEXT NOT NULL,
+    deskripsi TEXT,
+    tanggal VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_galeri_kategori ON public.galeri(kategori);
 
--- 5. ENABLE ROW LEVEL SECURITY
-ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+-- 6. ROW LEVEL SECURITY (RLS) & POLICIES
+ALTER TABLE public.admin ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dudi ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cms_content ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pengaturan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.galeri ENABLE ROW LEVEL SECURITY;
 
--- 6. POLICIES (PUBLIC READ & FULL ACCESS)
-DROP POLICY IF EXISTS "Public Read Admin Users" ON public.admin_users;
-DROP POLICY IF EXISTS "Full Access Admin Users" ON public.admin_users;
-DROP POLICY IF EXISTS "Allow All Admin Users" ON public.admin_users;
-CREATE POLICY "Allow All Admin Users" ON public.admin_users FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow All Admin" ON public.admin;
+CREATE POLICY "Allow All Admin" ON public.admin FOR ALL USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Public Read DUDI" ON public.dudi;
-DROP POLICY IF EXISTS "Full Access DUDI" ON public.dudi;
-DROP POLICY IF EXISTS "Allow All DUDI" ON public.dudi;
-CREATE POLICY "Allow All DUDI" ON public.dudi FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow All Dudi" ON public.dudi;
+CREATE POLICY "Allow All Dudi" ON public.dudi FOR ALL USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Public Read CMS" ON public.cms_content;
-DROP POLICY IF EXISTS "Full Access CMS" ON public.cms_content;
-DROP POLICY IF EXISTS "Allow All CMS" ON public.cms_content;
-CREATE POLICY "Allow All CMS" ON public.cms_content FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow All Pengaturan" ON public.pengaturan;
+CREATE POLICY "Allow All Pengaturan" ON public.pengaturan FOR ALL USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Public Read Gallery" ON public.gallery;
-DROP POLICY IF EXISTS "Full Access Gallery" ON public.gallery;
-DROP POLICY IF EXISTS "Allow All Gallery" ON public.gallery;
-CREATE POLICY "Allow All Gallery" ON public.gallery FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow All Galeri" ON public.galeri;
+CREATE POLICY "Allow All Galeri" ON public.galeri FOR ALL USING (true) WITH CHECK (true);
 
--- 7. SEED AKUN SUPERADMIN
-INSERT INTO public.admin_users (email, password, full_name, role, is_active)
+-- 7. SEED DATA AKUN SUPERADMIN RESMI
+INSERT INTO public.admin (email, password, full_name, role, is_active)
 VALUES ('pakaryanoe@gmail.com', '@PTKsonggom1', 'Pak Aryanoe (Administrator GIS SMKN 1 Songgom)', 'superadmin', true)
-ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, full_name = EXCLUDED.full_name, role = EXCLUDED.role, is_active = EXCLUDED.is_active;
+ON CONFLICT (email) DO UPDATE
+SET password = EXCLUDED.password, full_name = EXCLUDED.full_name, role = EXCLUDED.role, is_active = EXCLUDED.is_active;
 `;
     navigator.clipboard.writeText(sqlText);
     setIsCopiedSql(true);
@@ -327,7 +381,7 @@ ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, full_name = EXCL
               }`}
             >
               <Building2 className="w-4 h-4" />
-              <span>Kelola Data DUDI ({dudiList.length})</span>
+              <span>Tabel DUDI ({dudiList.length})</span>
             </button>
 
             <button
@@ -351,7 +405,7 @@ ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, full_name = EXCL
               }`}
             >
               <Settings className="w-4 h-4" />
-              <span>Konten CMS Website</span>
+              <span>Tabel Pengaturan ({Object.keys(cms || {}).length})</span>
             </button>
 
             <button
@@ -363,7 +417,7 @@ ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, full_name = EXCL
               }`}
             >
               <ImageIcon className="w-4 h-4" />
-              <span>Kelola Galeri ({gallery.length})</span>
+              <span>Tabel Galeri ({gallery.length})</span>
             </button>
 
             <button
@@ -375,7 +429,7 @@ ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, full_name = EXCL
               }`}
             >
               <Database className="w-4 h-4" />
-              <span>Database & Supabase</span>
+              <span>Tabel Admin & Supabase</span>
             </button>
           </div>
         </div>
@@ -974,35 +1028,79 @@ ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, full_name = EXCL
                 </div>
               </div>
 
-              {/* Info Banner */}
-              <div className="bg-neutral-50 p-5 rounded-2xl border border-neutral-200 text-xs space-y-3">
-                <div className="font-bold text-neutral-800 text-sm">
-                  Informasi Integrasi Supabase SQL Editor:
+              {/* Info 4 Tabel Utama & Auth */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200">Tabel 1</span>
+                  <h4 className="font-extrabold text-sm text-neutral-900 mt-2">public.admin</h4>
+                  <p className="text-xs text-neutral-500 mt-1">Mengelola kredensial superadmin (Pak Aryanoe) & terintegrasi dengan Supabase Authentication.</p>
                 </div>
-                <p className="text-neutral-600 leading-relaxed">
-                  File SQL telah otomatis disiapkan di root proyek dengan nama <code className="bg-white px-2 py-0.5 rounded border border-neutral-300 font-mono text-red-600">supabase-schema.sql</code>. Berkas ini mencakup pembuatan tabel <code>dudi</code>, <code>cms_content</code>, <code>gallery</code>, Row Level Security (RLS) policies, serta seed data lengkap 32 tempat PKL resmi.
-                </p>
+                <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Tabel 2</span>
+                  <h4 className="font-extrabold text-sm text-neutral-900 mt-2">public.dudi</h4>
+                  <p className="text-xs text-neutral-500 mt-1">Menyimpan 32 tempat PKL, kuota siswa, koordinat GPS. Primary key sinkron mencegah duplikasi saat update.</p>
+                </div>
+                <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Tabel 3</span>
+                  <h4 className="font-extrabold text-sm text-neutral-900 mt-2">public.pengaturan</h4>
+                  <p className="text-xs text-neutral-500 mt-1">Mengatur isian dinamis teks Hero GIS, profil kompetensi keahlian TKJ, manfaat, dan info kontak sekolah.</p>
+                </div>
+                <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">Tabel 4</span>
+                  <h4 className="font-extrabold text-sm text-neutral-900 mt-2">public.galeri</h4>
+                  <p className="text-xs text-neutral-500 mt-1">Dokumentasi teknis praktik perakitan komputer, splicing fiber optik, dan pengujian jaringan siswa.</p>
+                </div>
+              </div>
 
-                <div className="flex flex-wrap items-center gap-3 pt-2">
+              {/* Info Banner */}
+              <div className="bg-neutral-50 p-5 rounded-2xl border border-neutral-200 text-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="font-black text-neutral-900 text-sm">
+                      Skrip SQL Skema Final (admin, dudi, pengaturan, galeri)
+                    </div>
+                    <p className="text-neutral-600 text-xs mt-0.5">
+                      Termasuk seed akun resmi <code>pakaryanoe@gmail.com</code> ke menu <b>Authentication &gt; Users</b> Supabase.
+                    </p>
+                  </div>
                   <button
                     onClick={copySqlToClipboard}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs transition-colors"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs transition-colors shrink-0 shadow-xs"
                   >
                     {isCopiedSql ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                     <span>{isCopiedSql ? 'Skrip SQL Tersalin!' : 'Salin Skrip SQL Schema'}</span>
                   </button>
                 </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-amber-900 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-xs">
+                    <span>💡 Mengapa Akun Admin Sebelumnya Belum Muncul di Supabase Authentication?</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-amber-800">
+                    Supabase memisahkan tabel internal <code>auth.users</code> (untuk login SDK &amp; menu Authentication) dengan tabel data biasa di schema <code>public</code>. Skema terbaru ini secara otomatis mendaftarkan akun <b>pakaryanoe@gmail.com</b> ke <code>auth.users</code> dan tabel <code>public.admin</code> sekaligus, sehingga langsung muncul di daftar Users Supabase Anda!
+                  </p>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 text-blue-900 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-xs">
+                    <span>✨ Perbaikan Update Nama DUDI (Tanpa Duplikasi)</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-blue-800">
+                    Kini tabel <code>dudi</code> menggunakan primary key <code>id TEXT PRIMARY KEY</code> yang sinkron (<code>dudi-1</code> s.d <code>dudi-32</code>). Saat Anda mengedit nama DUDI (misal &quot;ABS Komputer&quot; diubah menjadi &quot;ABS&quot;), sistem melakukan update langsung pada baris data tersebut sehingga nama lama langsung terhapus dan digantikan dengan nama baru.
+                  </p>
+                </div>
               </div>
 
               {/* Step-by-step guidance */}
               <div className="space-y-3 pt-4 border-t border-neutral-200 text-xs">
-                <h4 className="font-extrabold text-sm text-neutral-900">Langkah Menjalankan di Supabase:</h4>
+                <h4 className="font-extrabold text-sm text-neutral-900">Panduan Menjalankan di Supabase:</h4>
                 <ol className="list-decimal list-inside space-y-2 text-neutral-600">
-                  <li>Buka dashboard proyek Anda di <b>Supabase</b> (https://supabase.com).</li>
-                  <li>Masuk ke menu <b>SQL Editor</b> pada sidebar kiri.</li>
-                  <li>Buat Query baru lalu paste skrip SQL dari file <code>supabase-schema.sql</code>.</li>
-                  <li>Klik tombol <b>Run</b>. Semua tabel dan 32 data DUDI langsung terisi.</li>
-                  <li>Masukkan <code>VITE_SUPABASE_URL</code> dan <code>VITE_SUPABASE_ANON_KEY</code> pada konfigurasi environment proyek bila ingin koneksi langsung.</li>
+                  <li>Buka dashboard proyek Anda di <b>Supabase</b> (<a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="text-red-600 underline">https://supabase.com</a>).</li>
+                  <li>Masuk ke menu <b>SQL Editor</b> pada sidebar navigasi sebelah kiri.</li>
+                  <li>Buat query baru (<i>New query</i>), lalu klik tombol <b>Salin Skrip SQL Schema</b> di atas dan paste ke editor.</li>
+                  <li>Klik tombol hijau <b>Run</b> (atau tekan <code>Ctrl + Enter</code>).</li>
+                  <li>Buka menu <b>Authentication &gt; Users</b>: Akun <code>pakaryanoe@gmail.com</code> akan langsung berstatus <i>Active</i> dan terkonfirmasi.</li>
+                  <li>Buka menu <b>Table Editor</b>: 4 tabel (<code>admin</code>, <code>dudi</code>, <code>pengaturan</code>, <code>galeri</code>) siap digunakan mengatur seluruh isian aplikasi.</li>
                 </ol>
               </div>
             </div>

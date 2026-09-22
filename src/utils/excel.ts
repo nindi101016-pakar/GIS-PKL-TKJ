@@ -2,9 +2,10 @@ import * as XLSX from 'xlsx';
 import { Dudi } from '../types';
 
 export const EXCEL_COLUMNS = [
+  'ID (Opsional)',
   'No',
   'Nama Dudi',
-  'MAKSIMAL SISWA',
+  'Maksimal Siswa',
   'Pimpinan',
   'Jenis Dudi',
   'Bidang Pekerjaan',
@@ -23,32 +24,50 @@ export const EXCEL_COLUMNS = [
 export function downloadExcelTemplate(): void {
   const sampleData = [
     {
+      'ID (Opsional)': 'dudi-1',
       'No': 1,
-      'Nama Dudi': 'Contoh Komputer & Jaringan',
-      'MAKSIMAL SISWA': 4,
-      'Pimpinan': 'Budi Santoso, S.Kom',
+      'Nama Dudi': 'ABS Komputer',
+      'Maksimal Siswa': 4,
+      'Pimpinan': 'Arief Bayu S.',
       'Jenis Dudi': 'Mandiri',
-      'Bidang Pekerjaan': 'Teknisi / Mekanik, Jasa, Penjualan',
-      'Alamat': 'Jl. Raya Songgom No. 12, Songgom Lor, Brebes',
-      'Kabupaten': 'Kab. Brebes',
-      'Latitude (Lintang)': -7.02512,
-      'Longitude (Bujur)': 108.99754,
-      'No. Hp': '081234567890',
+      'Bidang Pekerjaan': 'Teknisi / Mekanik, Penjualan',
+      'Alamat': 'Jl. Projosumarto 01 Gg. Balok Desa Sutapranan, Kec. Dukuhturi, Kab. Tegal',
+      'Kabupaten': 'Kab. Tegal',
+      'Latitude (Lintang)': -6.90356,
+      'Longitude (Bujur)': 109.13615,
+      'No. Hp': '0857-1234-5001',
       'Jaminan': '-',
       'Nominal': 0,
     },
     {
+      'ID (Opsional)': 'dudi-2',
       'No': 2,
-      'Nama Dudi': 'PT Media Cepat Network',
-      'MAKSIMAL SISWA': 2,
-      'Pimpinan': 'Ir. H. Ahmad Fauzi',
+      'Nama Dudi': 'Era Network Center (ENC)',
+      'Maksimal Siswa': 4,
+      'Pimpinan': 'Nasruloh',
       'Jenis Dudi': 'CV/PT',
       'Bidang Pekerjaan': 'Jaringan, Jasa',
-      'Alamat': 'Jl. Gajah Mada No. 45, Slawi, Tegal',
+      'Alamat': 'Jl. Kertaharja, Jatirokeh, Kec. Songgom, Kab. Brebes',
+      'Kabupaten': 'Kab. Brebes',
+      'Latitude (Lintang)': -6.99565,
+      'Longitude (Bujur)': 109.03018,
+      'No. Hp': '0819-0234-5002',
+      'Jaminan': '-',
+      'Nominal': 0,
+    },
+    {
+      'ID (Opsional)': 'dudi-3',
+      'No': 3,
+      'Nama Dudi': 'Fito Komputer',
+      'Maksimal Siswa': 4,
+      'Pimpinan': 'Fiqri silando Amd.T',
+      'Jenis Dudi': 'Mandiri',
+      'Bidang Pekerjaan': 'Teknisi / Mekanik, Jasa, Penjualan',
+      'Alamat': 'Jl. Gajah Mada, RT.05/RW.07, Desa Kalisapu, Kec. Slawi, Kab. Tegal',
       'Kabupaten': 'Kab. Tegal',
-      'Latitude (Lintang)': -6.98540,
-      'Longitude (Bujur)': 109.12450,
-      'No. Hp': '085712345678',
+      'Latitude (Lintang)': -6.98403,
+      'Longitude (Bujur)': 109.12567,
+      'No. Hp': '0878-3012-5003',
       'Jaminan': '-',
       'Nominal': 0,
     },
@@ -58,6 +77,7 @@ export function downloadExcelTemplate(): void {
 
   // Column width hints
   worksheet['!cols'] = [
+    { wch: 14 }, // ID
     { wch: 6 }, // No
     { wch: 35 }, // Nama Dudi
     { wch: 16 }, // Maksimal Siswa
@@ -84,9 +104,10 @@ export function downloadExcelTemplate(): void {
  */
 export function exportDudiToExcel(dudiList: Dudi[]): void {
   const exportData = dudiList.map((item, index) => ({
+    'ID (Opsional)': item.id || `dudi-${item.no || index + 1}`,
     'No': item.no || index + 1,
     'Nama Dudi': item.nama_dudi,
-    'MAKSIMAL SISWA': item.maksimal_siswa,
+    'Maksimal Siswa': item.maksimal_siswa,
     'Pimpinan': item.pimpinan || '',
     'Jenis Dudi': item.jenis_dudi || 'Mandiri',
     'Bidang Pekerjaan': item.bidang_pekerjaan || '',
@@ -101,6 +122,7 @@ export function exportDudiToExcel(dudiList: Dudi[]): void {
 
   const worksheet = XLSX.utils.json_to_sheet(exportData, { header: EXCEL_COLUMNS });
   worksheet['!cols'] = [
+    { wch: 14 },
     { wch: 6 },
     { wch: 36 },
     { wch: 16 },
@@ -238,9 +260,19 @@ export async function parseExcelFile(
           const kabupaten =
             row['Kabupaten'] || detectKabupaten(String(alamat));
 
+          const rawId =
+            row['ID (Opsional)'] ||
+            row['ID'] ||
+            row['id'] ||
+            row['Id'];
+          const parsedNo = parseInt(String(row['No'] || idx + 1)) || idx + 1;
+          const assignedId = (rawId && String(rawId).trim() !== '')
+            ? String(rawId).trim()
+            : `dudi-${parsedNo}`;
+
           parsedDudi.push({
-            id: `imported-${Date.now()}-${idx}`,
-            no: parseInt(String(row['No'] || idx + 1)) || idx + 1,
+            id: assignedId,
+            no: parsedNo,
             nama_dudi: String(namaDudi).trim(),
             maksimal_siswa: maxSiswa,
             pimpinan: String(pimpinan).trim(),

@@ -18,10 +18,10 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
   : null;
 
 // Local storage keys for state persistence fallback
-const LS_DUDI_KEY = 'smkn1songgom_dudi_list_v1';
-const LS_CMS_KEY = 'smkn1songgom_cms_content_v1';
-const LS_GALLERY_KEY = 'smkn1songgom_gallery_v1';
-const LS_ADMIN_KEY = 'smkn1songgom_admin_auth_v1';
+const LS_DUDI_KEY = 'smkn1songgom_dudi_list_v2';
+const LS_CMS_KEY = 'smkn1songgom_cms_content_v2';
+const LS_GALLERY_KEY = 'smkn1songgom_gallery_v2';
+const LS_ADMIN_KEY = 'smkn1songgom_admin_auth_v2';
 
 // Initialize localStorage with initial data if empty or outdated
 function initLocalStorage() {
@@ -32,26 +32,16 @@ function initLocalStorage() {
   const storedCms = localStorage.getItem(LS_CMS_KEY);
   if (!storedCms) {
     localStorage.setItem(LS_CMS_KEY, JSON.stringify(DEFAULT_CMS_CONTENT));
-  } else {
-    try {
-      const parsed = JSON.parse(storedCms);
-      if (parsed.hero && parsed.hero.headline && parsed.hero.headline.includes('Pemetaan Cerdas')) {
-        parsed.hero.headline = DEFAULT_CMS_CONTENT.hero.headline;
-        localStorage.setItem(LS_CMS_KEY, JSON.stringify(parsed));
-      }
-    } catch {
-      localStorage.setItem(LS_CMS_KEY, JSON.stringify(DEFAULT_CMS_CONTENT));
-    }
   }
-
-  // Always refresh gallery with non-face, technical product photos
-  localStorage.setItem(LS_GALLERY_KEY, JSON.stringify(INITIAL_GALLERY));
+  if (!localStorage.getItem(LS_GALLERY_KEY)) {
+    localStorage.setItem(LS_GALLERY_KEY, JSON.stringify(INITIAL_GALLERY));
+  }
 }
 
 initLocalStorage();
 
 export const dataService = {
-  // ===================== DUDI / TEMPAT PKL =====================
+  // ===================== DUDI / TEMPAT PKL (Tabel: public.dudi) =====================
   async getDudiList(): Promise<Dudi[]> {
     if (supabase) {
       try {
@@ -61,10 +51,12 @@ export const dataService = {
           .order('no', { ascending: true });
 
         if (!error && data && data.length > 0) {
-          return data as Dudi[];
+          const list = data as Dudi[];
+          localStorage.setItem(LS_DUDI_KEY, JSON.stringify(list));
+          return list;
         }
       } catch (err) {
-        console.warn('Supabase fetch failed, falling back to local storage:', err);
+        console.warn('Supabase dudi fetch error, using local fallback:', err);
       }
     }
 
@@ -80,10 +72,10 @@ export const dataService = {
   },
 
   async addDudi(item: Omit<Dudi, 'id'>): Promise<Dudi> {
-    const newId = `dudi-${Date.now()}`;
+    const determinedId = item.no ? `dudi-${item.no}` : `dudi-${Date.now()}`;
     const newItem: Dudi = {
       ...item,
-      id: newId,
+      id: determinedId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -97,7 +89,6 @@ export const dataService = {
           .single();
 
         if (!error && data) {
-          // also sync to local storage
           this.syncLocalDudi(data as Dudi, 'add');
           return data as Dudi;
         }
@@ -106,62 +97,89 @@ export const dataService = {
       }
     }
 
-    const currentList = await this.getDudiList();
-    const updatedList = [newItem, ...currentList];
-    localStorage.setItem(LS_DUDI_KEY, JSON.stringify(updatedList));
+    this.syncLocalDudi(newItem, 'add');
     return newItem;
   },
 
   async updateDudi(id: string, updates: Partial<Dudi>): Promise<Dudi> {
+    let updatedDbItem: Dudi | null = null;
+    const nowStr = new Date().toISOString();
+
     if (supabase) {
       try {
+        // 1. Coba update berdasarkan ID
         const { data, error } = await supabase
           .from('dudi')
-          .update({ ...updates, updated_at: new Date().toISOString() })
+          .update({ ...updates, updated_at: nowStr })
           .eq('id', id)
           .select()
-          .single();
+          .maybeSingle();
 
         if (!error && data) {
-          this.syncLocalDudi(data as Dudi, 'update');
-          return data as Dudi;
+          updatedDbItem = data as Dudi;
+        } else if (updates.no !== undefined) {
+          // 2. Fallback update berdasarkan nomor urut jika ID lokal berbeda dari ID database
+          const { data: dataByNo, error: errByNo } = await supabase
+            .from('dudi')
+            .update({ ...updates, updated_at: nowStr })
+            .eq('no', updates.no)
+            .select()
+            .maybeSingle();
+
+          if (!errByNo && dataByNo) {
+            updatedDbItem = dataByNo as Dudi;
+          }
         }
       } catch (err) {
-        console.warn('Supabase update failed, updating locally:', err);
+        console.warn('Supabase dudi update error:', err);
       }
     }
 
+    // Update Local Storage secara ketat agar nama lama tidak pernah tertinggal
     const currentList = await this.getDudiList();
-    const idx = currentList.findIndex((item) => item.id === id);
-    if (idx !== -1) {
-      const updatedItem = {
-        ...currentList[idx],
-        ...updates,
-        updated_at: new Date().toISOString(),
-      };
-      currentList[idx] = updatedItem;
-      localStorage.setItem(LS_DUDI_KEY, JSON.stringify(currentList));
-      return updatedItem;
+    const targetIdx = currentList.findIndex(
+      (item) => item.id === id || (updates.no !== undefined && item.no === updates.no)
+    );
+
+    const mergedItem: Dudi = updatedDbItem
+      ? updatedDbItem
+      : {
+          ...(targetIdx !== -1 ? currentList[targetIdx] : ({} as Dudi)),
+          ...updates,
+          id: id,
+          updated_at: nowStr,
+        };
+
+    let updatedList: Dudi[];
+    if (targetIdx !== -1) {
+      updatedList = [...currentList];
+      updatedList[targetIdx] = mergedItem;
+    } else {
+      updatedList = [mergedItem, ...currentList];
     }
-    throw new Error('DUDI tidak ditemukan');
+
+    // Pastikan tidak ada duplikasi nomor urut atau ID
+    const uniqueMap = new Map<string, Dudi>();
+    updatedList.forEach((d) => {
+      const key = `${d.no || d.id}`;
+      uniqueMap.set(key, d);
+    });
+    const cleanList = Array.from(uniqueMap.values()).sort((a, b) => (a.no || 0) - (b.no || 0));
+
+    localStorage.setItem(LS_DUDI_KEY, JSON.stringify(cleanList));
+    return mergedItem;
   },
 
   async deleteDudi(id: string): Promise<boolean> {
     if (supabase) {
       try {
-        const { error } = await supabase.from('dudi').delete().eq('id', id);
-        if (!error) {
-          this.syncLocalDudi({ id } as Dudi, 'delete');
-          return true;
-        }
+        await supabase.from('dudi').delete().eq('id', id);
       } catch (err) {
-        console.warn('Supabase delete failed, deleting locally:', err);
+        console.warn('Supabase delete error:', err);
       }
     }
 
-    const currentList = await this.getDudiList();
-    const filtered = currentList.filter((item) => item.id !== id);
-    localStorage.setItem(LS_DUDI_KEY, JSON.stringify(filtered));
+    this.syncLocalDudi({ id } as Dudi, 'delete');
     return true;
   },
 
@@ -173,17 +191,25 @@ export const dataService = {
           .upsert(items, { onConflict: 'id' })
           .select();
 
-        if (!error && data) {
+        if (!error && data && data.length > 0) {
           localStorage.setItem(LS_DUDI_KEY, JSON.stringify(data));
           return data as Dudi[];
         }
       } catch (err) {
-        console.warn('Supabase bulk upsert failed, saving locally:', err);
+        console.warn('Supabase bulk upsert error:', err);
       }
     }
 
-    localStorage.setItem(LS_DUDI_KEY, JSON.stringify(items));
-    return items;
+    // Local merge by ID & No to prevent duplicates
+    const currentList = await this.getDudiList();
+    const itemMap = new Map<string, Dudi>();
+    currentList.forEach((it) => itemMap.set(it.id, it));
+    items.forEach((it) => {
+      itemMap.set(it.id, it);
+    });
+    const merged = Array.from(itemMap.values()).sort((a, b) => (a.no || 0) - (b.no || 0));
+    localStorage.setItem(LS_DUDI_KEY, JSON.stringify(merged));
+    return merged;
   },
 
   syncLocalDudi(item: Dudi, action: 'add' | 'update' | 'delete') {
@@ -192,34 +218,60 @@ export const dataService = {
       const list: Dudi[] = stored ? JSON.parse(stored) : INITIAL_DUDI_LIST;
       let nextList: Dudi[];
       if (action === 'add') {
-        nextList = [item, ...list];
+        // Cek jika sudah ada dengan id atau no yang sama
+        const exists = list.some((d) => d.id === item.id || (item.no && d.no === item.no));
+        if (exists) {
+          nextList = list.map((d) => (d.id === item.id || (item.no && d.no === item.no) ? item : d));
+        } else {
+          nextList = [...list, item];
+        }
       } else if (action === 'update') {
-        nextList = list.map((d) => (d.id === item.id ? item : d));
+        nextList = list.map((d) => (d.id === item.id || (item.no && d.no === item.no) ? item : d));
       } else {
         nextList = list.filter((d) => d.id !== item.id);
       }
+      nextList.sort((a, b) => (a.no || 0) - (b.no || 0));
       localStorage.setItem(LS_DUDI_KEY, JSON.stringify(nextList));
     } catch {
       // ignore
     }
   },
 
-  // ===================== CMS CONTENT =====================
+  // ===================== PENGATURAN CMS (Tabel: public.pengaturan) =====================
   async getCMSContent(): Promise<CMSContent> {
     if (supabase) {
       try {
-        const { data, error } = await supabase.from('cms_content').select('*');
+        // Coba tabel pengaturan
+        const { data, error } = await supabase.from('pengaturan').select('*');
         if (!error && data && data.length > 0) {
           const cmsMap: any = { ...DEFAULT_CMS_CONTENT };
           data.forEach((row) => {
-            if (row.key && row.value) {
-              cmsMap[row.key] = row.value;
+            const key = row.kunci || row.key;
+            const val = row.nilai || row.value;
+            if (key && val) {
+              cmsMap[key] = val;
             }
           });
+          localStorage.setItem(LS_CMS_KEY, JSON.stringify(cmsMap));
+          return cmsMap as CMSContent;
+        }
+
+        // Fallback coba tabel cms_content jika tabel pengaturan belum dibuat
+        const { data: legacyData, error: legacyErr } = await supabase.from('cms_content').select('*');
+        if (!legacyErr && legacyData && legacyData.length > 0) {
+          const cmsMap: any = { ...DEFAULT_CMS_CONTENT };
+          legacyData.forEach((row) => {
+            const key = row.key || row.kunci;
+            const val = row.value || row.nilai;
+            if (key && val) {
+              cmsMap[key] = val;
+            }
+          });
+          localStorage.setItem(LS_CMS_KEY, JSON.stringify(cmsMap));
           return cmsMap as CMSContent;
         }
       } catch (err) {
-        console.warn('Supabase CMS fetch error, using local:', err);
+        console.warn('Supabase pengaturan fetch error, using local fallback:', err);
       }
     }
 
@@ -238,18 +290,32 @@ export const dataService = {
     section: K,
     value: CMSContent[K]
   ): Promise<CMSContent> {
+    const nowStr = new Date().toISOString();
     if (supabase) {
       try {
-        await supabase.from('cms_content').upsert(
+        // 1. Simpan ke tabel pengaturan
+        const { error } = await supabase.from('pengaturan').upsert(
           {
-            key: section,
-            value: value,
-            updated_at: new Date().toISOString(),
+            kunci: section,
+            nilai: value,
+            updated_at: nowStr,
           },
-          { onConflict: 'key' }
+          { onConflict: 'kunci' }
         );
+
+        if (error) {
+          // Fallback coba ke cms_content jika tabel pengaturan belum dibuat
+          await supabase.from('cms_content').upsert(
+            {
+              key: section,
+              value: value,
+              updated_at: nowStr,
+            },
+            { onConflict: 'key' }
+          );
+        }
       } catch (err) {
-        console.warn('Supabase CMS update error:', err);
+        console.warn('Supabase update pengaturan error:', err);
       }
     }
 
@@ -259,19 +325,49 @@ export const dataService = {
     return current;
   },
 
-  // ===================== GALLERY =====================
+  // ===================== GALERI (Tabel: public.galeri) =====================
   async getGallery(): Promise<GalleryItem[]> {
     if (supabase) {
       try {
+        // Coba tabel galeri
         const { data, error } = await supabase
+          .from('galeri')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          const list: GalleryItem[] = data.map((row) => ({
+            id: row.id,
+            title: row.judul || row.title || '',
+            category: row.kategori || row.category || 'Instalasi Jaringan',
+            imageUrl: row.url_gambar || row.image_url || '',
+            description: row.deskripsi || row.description || '',
+            date: row.tanggal || row.date || '',
+          }));
+          localStorage.setItem(LS_GALLERY_KEY, JSON.stringify(list));
+          return list;
+        }
+
+        // Fallback coba tabel gallery jika tabel galeri belum dibuat
+        const { data: legacyData, error: legacyErr } = await supabase
           .from('gallery')
           .select('*')
           .order('created_at', { ascending: false });
-        if (!error && data && data.length > 0) {
-          return data as GalleryItem[];
+
+        if (!legacyErr && legacyData && legacyData.length > 0) {
+          const list: GalleryItem[] = legacyData.map((row) => ({
+            id: row.id,
+            title: row.title || row.judul || '',
+            category: row.category || row.kategori || 'Instalasi Jaringan',
+            imageUrl: row.image_url || row.url_gambar || '',
+            description: row.description || row.deskripsi || '',
+            date: row.date || row.tanggal || '',
+          }));
+          localStorage.setItem(LS_GALLERY_KEY, JSON.stringify(list));
+          return list;
         }
       } catch (err) {
-        console.warn('Supabase gallery fetch error, using local:', err);
+        console.warn('Supabase galeri fetch error, using local fallback:', err);
       }
     }
 
@@ -294,16 +390,33 @@ export const dataService = {
 
     if (supabase) {
       try {
-        const { data, error } = await supabase
-          .from('gallery')
-          .insert([newItem])
-          .select()
-          .single();
-        if (!error && data) {
-          return data as GalleryItem;
+        // 1. Simpan ke tabel galeri
+        const { error } = await supabase.from('galeri').insert([
+          {
+            id: newItem.id,
+            judul: newItem.title,
+            kategori: newItem.category,
+            url_gambar: newItem.imageUrl,
+            deskripsi: newItem.description,
+            tanggal: newItem.date,
+          },
+        ]);
+
+        if (error) {
+          // Fallback coba ke tabel gallery jika galeri belum dibuat
+          await supabase.from('gallery').insert([
+            {
+              id: newItem.id,
+              title: newItem.title,
+              category: newItem.category,
+              image_url: newItem.imageUrl,
+              description: newItem.description,
+              date: newItem.date,
+            },
+          ]);
         }
       } catch (err) {
-        console.warn('Supabase gallery insert error:', err);
+        console.warn('Supabase galeri insert error:', err);
       }
     }
 
@@ -316,9 +429,10 @@ export const dataService = {
   async deleteGalleryItem(id: string): Promise<boolean> {
     if (supabase) {
       try {
+        await supabase.from('galeri').delete().eq('id', id);
         await supabase.from('gallery').delete().eq('id', id);
       } catch (err) {
-        console.warn('Supabase gallery delete error:', err);
+        console.warn('Supabase galeri delete error:', err);
       }
     }
 
@@ -344,7 +458,7 @@ export const dataService = {
     return this.updateCMSSection(section, value);
   },
 
-  // ===================== ADMIN AUTH =====================
+  // ===================== ADMIN AUTHENTICATION (Tabel: public.admin & Supabase Auth) =====================
   isAdminLoggedIn(): boolean {
     if (typeof window === 'undefined') return false;
     return localStorage.getItem(LS_ADMIN_KEY) === 'true';
@@ -366,10 +480,52 @@ export const dataService = {
     const isPakAryanoe = cleanEmail === 'pakaryanoe@gmail.com' && cleanPass === '@PTKsonggom1';
     const isLegacyAdmin = (cleanEmail === 'admin@smkn1songgom.sch.id' || cleanEmail === 'admin') && cleanPass === 'admin123';
 
-    // 1. Try checking admin_users table in Supabase if client configured
     if (supabase) {
       try {
-        const { data, error } = await supabase
+        // 1. Coba verifikasi langsung lewat Supabase Authentication Resmi (auth.users)
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: cleanPass,
+        });
+
+        if (!authError && authData.user) {
+          this.setAdminLoggedIn(true);
+          // Update waktu login di tabel public.admin
+          try {
+            await supabase
+              .from('admin')
+              .update({ last_login: new Date().toISOString() })
+              .ilike('email', cleanEmail);
+          } catch {
+            // non-blocking
+          }
+          return true;
+        }
+
+        // 2. Jika login Supabase Auth gagal / belum terdaftar di auth.users, periksa tabel public.admin
+        const { data: adminRow } = await supabase
+          .from('admin')
+          .select('*')
+          .ilike('email', cleanEmail)
+          .eq('password', cleanPass)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (adminRow) {
+          this.setAdminLoggedIn(true);
+          try {
+            await supabase
+              .from('admin')
+              .update({ last_login: new Date().toISOString() })
+              .eq('id', adminRow.id);
+          } catch {
+            // non-blocking
+          }
+          return true;
+        }
+
+        // 3. Fallback periksa tabel lama public.admin_users jika tabel public.admin belum dibuat
+        const { data: legacyAdminRow } = await supabase
           .from('admin_users')
           .select('*')
           .ilike('email', cleanEmail)
@@ -377,42 +533,55 @@ export const dataService = {
           .eq('is_active', true)
           .maybeSingle();
 
-        if (data && !error) {
+        if (legacyAdminRow) {
           this.setAdminLoggedIn(true);
-          try {
-            await supabase
-              .from('admin_users')
-              .update({ last_login: new Date().toISOString() })
-              .eq('id', data.id);
-          } catch {
-            // non-blocking
-          }
           return true;
         }
 
-        // Auto-seed into Supabase if logging in with valid admin credentials but row doesn't exist yet
+        // 4. Jika akun adalah akun resmi Pak Aryanoe, lakukan auto-sinkronisasi ke auth.users dan tabel public.admin
         if (isPakAryanoe) {
+          // Auto-register ke Supabase Auth agar tersimpan di menu Authentication > Users
           try {
-            await supabase.from('admin_users').upsert({
+            await supabase.auth.signUp({
               email: 'pakaryanoe@gmail.com',
               password: '@PTKsonggom1',
-              full_name: 'Pak Aryanoe (Administrator GIS SMKN 1 Songgom)',
-              role: 'superadmin',
-              is_active: true,
-              last_login: new Date().toISOString(),
-            }, { onConflict: 'email' });
-          } catch (upsertErr) {
-            console.warn('Auto-seed admin in Supabase notice:', upsertErr);
+              options: {
+                data: {
+                  full_name: 'Pak Aryanoe (Administrator GIS SMKN 1 Songgom)',
+                  role: 'superadmin',
+                },
+              },
+            });
+          } catch (signUpErr) {
+            console.warn('Supabase auth signUp notice:', signUpErr);
           }
+
+          // Auto-upsert ke tabel public.admin
+          try {
+            await supabase.from('admin').upsert(
+              {
+                email: 'pakaryanoe@gmail.com',
+                password: '@PTKsonggom1',
+                full_name: 'Pak Aryanoe (Administrator GIS SMKN 1 Songgom)',
+                role: 'superadmin',
+                is_active: true,
+                last_login: new Date().toISOString(),
+              },
+              { onConflict: 'email' }
+            );
+          } catch (upsertErr) {
+            console.warn('Auto-seed public.admin notice:', upsertErr);
+          }
+
           this.setAdminLoggedIn(true);
           return true;
         }
       } catch (err) {
-        console.warn('Supabase admin_users check error, trying fallback:', err);
+        console.warn('Supabase admin verification check error, falling back:', err);
       }
     }
 
-    // 2. Default credentials fallback
+    // Default local credentials fallback
     if (isPakAryanoe || isLegacyAdmin) {
       this.setAdminLoggedIn(true);
       return true;
