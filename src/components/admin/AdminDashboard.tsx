@@ -171,7 +171,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     });
   };
 
-  const copySqlToClipboard = () => {
+  const downloadSqlFile = async () => {
+    try {
+      const res = await fetch('/supabase-schema.sql');
+      const text = res.ok ? await res.text() : '';
+      if (!text) return;
+      const blob = new Blob([text], { type: 'text/sql;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'supabase-schema.sql');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Gagal mengunduh berkas SQL:', err);
+    }
+  };
+
+  const copySqlToClipboard = async () => {
     const sqlText = `-- ============================================================================
 -- SKEMA BASIS DATA SUPABASE RESMI (VERSI TERBARU & BEBAS ERROR)
 -- SISTEM INFORMASI GEOGRAFIS (GIS) PEMETAAN TEMPAT PKL TKJ
@@ -325,7 +344,19 @@ SET password = EXCLUDED.password, full_name = EXCLUDED.full_name, role = EXCLUDE
 
 -- Salin dan jalankan seluruh isi file supabase-schema.sql di Supabase SQL Editor untuk 32 data DUDI lengkap!
 `;
-    navigator.clipboard.writeText(sqlText);
+    try {
+      const res = await fetch('/supabase-schema.sql');
+      if (res.ok) {
+        const fullSql = await res.text();
+        await navigator.clipboard.writeText(fullSql);
+        setIsCopiedSql(true);
+        setTimeout(() => setIsCopiedSql(false), 2500);
+        return;
+      }
+    } catch {
+      // fallback to sqlText
+    }
+    await navigator.clipboard.writeText(sqlText);
     setIsCopiedSql(true);
     setTimeout(() => setIsCopiedSql(false), 2500);
   };
@@ -1069,13 +1100,23 @@ SET password = EXCLUDED.password, full_name = EXCLUDED.full_name, role = EXCLUDE
                       Termasuk seed akun resmi <code>pakaryanoe@gmail.com</code> ke menu <b>Authentication &gt; Users</b> Supabase.
                     </p>
                   </div>
-                  <button
-                    onClick={copySqlToClipboard}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs transition-colors shrink-0 shadow-xs"
-                  >
-                    {isCopiedSql ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                    <span>{isCopiedSql ? 'Skrip SQL Tersalin!' : 'Salin Skrip SQL Schema'}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={downloadSqlFile}
+                      className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-neutral-300 bg-white hover:bg-neutral-100 text-neutral-800 font-bold text-xs transition-colors shrink-0 shadow-xs cursor-pointer"
+                      title="Unduh berkas supabase-schema.sql langsung ke komputer Anda"
+                    >
+                      <Download className="w-4 h-4 text-neutral-600" />
+                      <span>Unduh File SQL</span>
+                    </button>
+                    <button
+                      onClick={copySqlToClipboard}
+                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs transition-colors shrink-0 shadow-xs cursor-pointer"
+                    >
+                      {isCopiedSql ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      <span>{isCopiedSql ? 'Skrip SQL Tersalin!' : 'Salin Skrip SQL Schema'}</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-amber-900 space-y-1">

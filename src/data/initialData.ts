@@ -16,7 +16,7 @@ export const DEFAULT_SCHOOL_LOCATION: SchoolLocation = {
 
 export const INITIAL_DUDI_LIST: Dudi[] = [
   {
-    id: 'dudi-1',
+    id: 'b0000000-0000-0000-0000-000000000001',
     no: 1,
     nama_dudi: 'ABS Komputer',
     maksimal_siswa: 4,
@@ -32,7 +32,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-2',
+    id: 'b0000000-0000-0000-0000-000000000002',
     no: 2,
     nama_dudi: 'Era Network Center (ENC)',
     maksimal_siswa: 4,
@@ -48,7 +48,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-3',
+    id: 'b0000000-0000-0000-0000-000000000003',
     no: 3,
     nama_dudi: 'Fito Komputer',
     maksimal_siswa: 4,
@@ -64,7 +64,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-4',
+    id: 'b0000000-0000-0000-0000-000000000004',
     no: 4,
     nama_dudi: 'Gibran Net (PT Media Cepat Indonesia)',
     maksimal_siswa: 4,
@@ -80,7 +80,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-5',
+    id: 'b0000000-0000-0000-0000-000000000005',
     no: 5,
     nama_dudi: 'Griya Komputer dan Network',
     maksimal_siswa: 4,
@@ -96,7 +96,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-6',
+    id: 'b0000000-0000-0000-0000-000000000006',
     no: 6,
     nama_dudi: 'Jet Computer',
     maksimal_siswa: 4,
@@ -112,7 +112,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-7',
+    id: 'b0000000-0000-0000-0000-000000000007',
     no: 7,
     nama_dudi: 'JNT.NET',
     maksimal_siswa: 4,
@@ -128,7 +128,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-8',
+    id: 'b0000000-0000-0000-0000-000000000008',
     no: 8,
     nama_dudi: 'Kim Komputer',
     maksimal_siswa: 4,
@@ -144,7 +144,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-9',
+    id: 'b0000000-0000-0000-0000-000000000009',
     no: 9,
     nama_dudi: 'MAMAS.COM',
     maksimal_siswa: 4,
@@ -160,7 +160,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-10',
+    id: 'b0000000-0000-0000-0000-000000000010',
     no: 10,
     nama_dudi: 'Mulia Hati Studio',
     maksimal_siswa: 4,
@@ -176,7 +176,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-11',
+    id: 'b0000000-0000-0000-0000-000000000011',
     no: 11,
     nama_dudi: 'Nada Komputer (NC)',
     maksimal_siswa: 4,
@@ -192,7 +192,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-12',
+    id: 'b0000000-0000-0000-0000-000000000012',
     no: 12,
     nama_dudi: 'Naza Komputer',
     maksimal_siswa: 4,
@@ -208,7 +208,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-13',
+    id: 'b0000000-0000-0000-0000-000000000013',
     no: 13,
     nama_dudi: 'Percetakan 99',
     maksimal_siswa: 2,
@@ -224,7 +224,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-14',
+    id: 'b0000000-0000-0000-0000-000000000014',
     no: 14,
     nama_dudi: 'PLN Icon Plus Purwokerto',
     maksimal_siswa: 4,
@@ -240,7 +240,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-15',
+    id: 'b0000000-0000-0000-0000-000000000015',
     no: 15,
     nama_dudi: 'PT Admin Juara Network',
     maksimal_siswa: 4,
@@ -256,7 +256,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-16',
+    id: 'b0000000-0000-0000-0000-000000000016',
     no: 16,
     nama_dudi: 'PT Chandra Sarana Lintas Media',
     maksimal_siswa: 4,
@@ -272,7 +272,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-17',
+    id: 'b0000000-0000-0000-0000-000000000017',
     no: 17,
     nama_dudi: 'PT Jayahana Munuara Mekanika Selaras',
     maksimal_siswa: 4,
@@ -288,7 +288,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-18',
+    id: 'b0000000-0000-0000-0000-000000000018',
     no: 18,
     nama_dudi: 'PT Saka Media Komunika (Cabang 1)',
     maksimal_siswa: 2,
@@ -304,7 +304,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-19',
+    id: 'b0000000-0000-0000-0000-000000000019',
     no: 19,
     nama_dudi: 'PT Saka Media Komunika (Cabang 2)',
     maksimal_siswa: 2,
@@ -320,7 +320,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-20',
+    id: 'b0000000-0000-0000-0000-000000000020',
     no: 20,
     nama_dudi: 'PT Saka Media Komunika (Cabang 3)',
     maksimal_siswa: 2,
@@ -336,7 +336,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-21',
+    id: 'b0000000-0000-0000-0000-000000000021',
     no: 21,
     nama_dudi: 'PT Serayu Multi Connection (Jatirokeh)',
     maksimal_siswa: 4,
@@ -352,7 +352,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-22',
+    id: 'b0000000-0000-0000-0000-000000000022',
     no: 22,
     nama_dudi: 'PT Serayu Multi Connection (Songgom)',
     maksimal_siswa: 4,
@@ -368,7 +368,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-23',
+    id: 'b0000000-0000-0000-0000-000000000023',
     no: 23,
     nama_dudi: 'Raja Komputer (RK)',
     maksimal_siswa: 4,
@@ -384,7 +384,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-24',
+    id: 'b0000000-0000-0000-0000-000000000024',
     no: 24,
     nama_dudi: 'Republik Computer',
     maksimal_siswa: 4,
@@ -400,7 +400,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-25',
+    id: 'b0000000-0000-0000-0000-000000000025',
     no: 25,
     nama_dudi: 'Rizky Computer (RC)',
     maksimal_siswa: 4,
@@ -416,7 +416,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-26',
+    id: 'b0000000-0000-0000-0000-000000000026',
     no: 26,
     nama_dudi: 'Rizky Net',
     maksimal_siswa: 4,
@@ -432,7 +432,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-27',
+    id: 'b0000000-0000-0000-0000-000000000027',
     no: 27,
     nama_dudi: 'RIZSKI COMPUTER',
     maksimal_siswa: 4,
@@ -448,7 +448,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-28',
+    id: 'b0000000-0000-0000-0000-000000000028',
     no: 28,
     nama_dudi: 'Sahabat Komputer',
     maksimal_siswa: 4,
@@ -464,7 +464,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-29',
+    id: 'b0000000-0000-0000-0000-000000000029',
     no: 29,
     nama_dudi: 'SH Net',
     maksimal_siswa: 4,
@@ -480,7 +480,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-30',
+    id: 'b0000000-0000-0000-0000-000000000030',
     no: 30,
     nama_dudi: 'Sigy Toner & Komputer',
     maksimal_siswa: 4,
@@ -496,7 +496,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-31',
+    id: 'b0000000-0000-0000-0000-000000000031',
     no: 31,
     nama_dudi: 'SKI Computer',
     maksimal_siswa: 4,
@@ -512,7 +512,7 @@ export const INITIAL_DUDI_LIST: Dudi[] = [
     nominal: 0,
   },
   {
-    id: 'dudi-32',
+    id: 'b0000000-0000-0000-0000-000000000032',
     no: 32,
     nama_dudi: 'Smart Komputer',
     maksimal_siswa: 4,
@@ -618,7 +618,7 @@ export const DEFAULT_CMS_CONTENT: CMSContent = {
 
 export const INITIAL_GALLERY: GalleryItem[] = [
   {
-    id: 'gal-1',
+    id: 'c0000000-0000-0000-0000-000000000001',
     title: 'Penyambungan Core Fiber Optik Menggunakan Fusion Splicer',
     category: 'Instalasi Jaringan',
     imageUrl: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=800&q=80',
@@ -626,7 +626,7 @@ export const INITIAL_GALLERY: GalleryItem[] = [
     date: '15 Agustus 2024',
   },
   {
-    id: 'gal-2',
+    id: 'c0000000-0000-0000-0000-000000000002',
     title: 'Manajemen Kabel Rack Server & Patch Panel Switch',
     category: 'Instalasi Jaringan',
     imageUrl: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80',
@@ -634,7 +634,7 @@ export const INITIAL_GALLERY: GalleryItem[] = [
     date: '28 September 2024',
   },
   {
-    id: 'gal-3',
+    id: 'c0000000-0000-0000-0000-000000000003',
     title: 'Pemeriksaan & Perakitan Hardware Komputer Motherboard',
     category: 'Perakitan & Servis',
     imageUrl: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?auto=format&fit=crop&w=800&q=80',
@@ -642,7 +642,7 @@ export const INITIAL_GALLERY: GalleryItem[] = [
     date: '10 Oktober 2024',
   },
   {
-    id: 'gal-4',
+    id: 'c0000000-0000-0000-0000-000000000004',
     title: 'Aktivitas Perakitan Komputer PC Desktop di Workshop',
     category: 'Perakitan & Servis',
     imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80',
@@ -650,7 +650,7 @@ export const INITIAL_GALLERY: GalleryItem[] = [
     date: '02 November 2024',
   },
   {
-    id: 'gal-5',
+    id: 'c0000000-0000-0000-0000-000000000005',
     title: 'Pengujian & Crimping Konektor RJ45 Kabel UTP LAN',
     category: 'Pengujian Alat',
     imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
@@ -658,7 +658,7 @@ export const INITIAL_GALLERY: GalleryItem[] = [
     date: '18 November 2024',
   },
   {
-    id: 'gal-6',
+    id: 'c0000000-0000-0000-0000-000000000006',
     title: 'Penyolderan & Perbaikan Sirkuit Elektronika Router',
     category: 'Perakitan & Servis',
     imageUrl: 'https://images.unsplash.com/photo-1563770660941-20978e870e26?auto=format&fit=crop&w=800&q=80',

@@ -24,7 +24,7 @@ export const EXCEL_COLUMNS = [
 export function downloadExcelTemplate(): void {
   const sampleData = [
     {
-      'ID (Opsional)': 'dudi-1',
+      'ID (Opsional)': 'b0000000-0000-0000-0000-000000000001',
       'No': 1,
       'Nama Dudi': 'ABS Komputer',
       'Maksimal Siswa': 4,
@@ -40,7 +40,7 @@ export function downloadExcelTemplate(): void {
       'Nominal': 0,
     },
     {
-      'ID (Opsional)': 'dudi-2',
+      'ID (Opsional)': 'b0000000-0000-0000-0000-000000000002',
       'No': 2,
       'Nama Dudi': 'Era Network Center (ENC)',
       'Maksimal Siswa': 4,
@@ -56,7 +56,7 @@ export function downloadExcelTemplate(): void {
       'Nominal': 0,
     },
     {
-      'ID (Opsional)': 'dudi-3',
+      'ID (Opsional)': 'b0000000-0000-0000-0000-000000000003',
       'No': 3,
       'Nama Dudi': 'Fito Komputer',
       'Maksimal Siswa': 4,
@@ -268,7 +268,7 @@ export async function parseExcelFile(
           const parsedNo = parseInt(String(row['No'] || idx + 1)) || idx + 1;
           const assignedId = (rawId && String(rawId).trim() !== '')
             ? String(rawId).trim()
-            : `dudi-${parsedNo}`;
+            : `b0000000-0000-0000-0000-${String(parsedNo).padStart(12, '0')}`;
 
           parsedDudi.push({
             id: assignedId,
