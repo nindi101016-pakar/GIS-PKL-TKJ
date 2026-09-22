@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Building2,
   FileSpreadsheet,
@@ -21,6 +21,8 @@ import {
   Eye,
   Save,
   Sparkles,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Dudi, CMSContent, GalleryItem, SchoolLocation } from '../../types';
 import { downloadExcelTemplate, exportDudiToExcel, parseExcelFile } from '../../utils/excel';
@@ -110,16 +112,50 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  // Pagination & Filter state for DUDI table
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   // Filtered DUDI for table
-  const filteredTableDudi = safeDudiList.filter((dudi) => {
-    const matchSearch =
-      !searchTable.trim() ||
-      dudi.nama_dudi.toLowerCase().includes(searchTable.toLowerCase()) ||
-      dudi.alamat.toLowerCase().includes(searchTable.toLowerCase()) ||
-      dudi.pimpinan?.toLowerCase().includes(searchTable.toLowerCase());
-    const matchKab = filterKab === 'Semua' || dudi.kabupaten === filterKab;
-    return matchSearch && matchKab;
-  });
+  const filteredTableDudi = useMemo(() => {
+    return safeDudiList.filter((dudi) => {
+      const matchSearch =
+        !searchTable.trim() ||
+        dudi.nama_dudi.toLowerCase().includes(searchTable.toLowerCase()) ||
+        dudi.alamat.toLowerCase().includes(searchTable.toLowerCase()) ||
+        dudi.pimpinan?.toLowerCase().includes(searchTable.toLowerCase()) ||
+        dudi.bidang_pekerjaan?.toLowerCase().includes(searchTable.toLowerCase());
+      const matchKab = filterKab === 'Semua' || dudi.kabupaten === filterKab;
+      return matchSearch && matchKab;
+    });
+  }, [safeDudiList, searchTable, filterKab]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTableDudi.length / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const paginatedDudi = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredTableDudi.slice(start, start + pageSize);
+  }, [filteredTableDudi, safeCurrentPage, pageSize]);
+
+  // Google-style pagination page numbers helper
+  const getPaginationPages = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (safeCurrentPage <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', totalPages);
+      } else if (safeCurrentPage >= totalPages - 3) {
+        pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, '...', safeCurrentPage - 1, safeCurrentPage, safeCurrentPage + 1, '...', totalPages);
+      }
+    }
+    return pages;
+  };
 
   // Handle Excel upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -556,16 +592,34 @@ SET password = EXCLUDED.password, full_name = EXCLUDED.full_name, role = EXCLUDE
                   type="text"
                   placeholder="Cari DUDI, pimpinan, alamat..."
                   value={searchTable}
-                  onChange={(e) => setSearchTable(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white outline-none"
+                  onChange={(e) => {
+                    setSearchTable(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full pl-9 pr-8 py-2 rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white outline-none"
                 />
+                {searchTable && (
+                  <button
+                    onClick={() => {
+                      setSearchTable('');
+                      setCurrentPage(1);
+                    }}
+                    className="absolute right-2.5 top-2.5 text-neutral-400 hover:text-neutral-600 p-0.5"
+                    title="Hapus pencarian"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <span className="text-neutral-500 font-medium shrink-0">Wilayah:</span>
                 <select
                   value={filterKab}
-                  onChange={(e) => setFilterKab(e.target.value)}
+                  onChange={(e) => {
+                    setFilterKab(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="px-3 py-2 rounded-xl border border-neutral-200 bg-neutral-50 outline-none font-medium"
                 >
                   <option value="Semua">Semua Wilayah</option>
@@ -594,14 +648,14 @@ SET password = EXCLUDED.password, full_name = EXCLUDED.full_name, role = EXCLUDE
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-100 font-medium text-neutral-800">
-                    {filteredTableDudi.length === 0 ? (
+                    {paginatedDudi.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="py-12 text-center text-neutral-400">
                           Tidak ada data tempat PKL yang cocok.
                         </td>
                       </tr>
                     ) : (
-                      filteredTableDudi.map((dudi) => (
+                      paginatedDudi.map((dudi) => (
                         <tr key={dudi.id} className="hover:bg-neutral-50/80 transition-colors">
                           <td className="py-3 px-4 font-bold text-neutral-900">{dudi.no}</td>
                           <td className="py-3 px-4">
@@ -629,7 +683,7 @@ SET password = EXCLUDED.password, full_name = EXCLUDED.full_name, role = EXCLUDE
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 onClick={() => onEditDudi(dudi)}
-                                className="p-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition-colors"
+                                className="p-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-700 transition-colors cursor-pointer"
                                 title="Edit Data"
                               >
                                 <Edit className="w-3.5 h-3.5 text-blue-600" />
@@ -640,7 +694,7 @@ SET password = EXCLUDED.password, full_name = EXCLUDED.full_name, role = EXCLUDE
                                     onDeleteDudi(dudi.id);
                                   }
                                 }}
-                                className="p-1.5 rounded-lg bg-neutral-100 hover:bg-red-100 text-neutral-700 hover:text-red-700 transition-colors"
+                                className="p-1.5 rounded-lg bg-neutral-100 hover:bg-red-100 text-neutral-700 hover:text-red-700 transition-colors cursor-pointer"
                                 title="Hapus Data"
                               >
                                 <Trash2 className="w-3.5 h-3.5 text-red-600" />
@@ -654,10 +708,106 @@ SET password = EXCLUDED.password, full_name = EXCLUDED.full_name, role = EXCLUDE
                 </table>
               </div>
 
-              {/* Table Footer */}
-              <div className="p-4 bg-neutral-50 border-t border-neutral-200 text-xs text-neutral-500 flex items-center justify-between">
-                <span>Total Data DUDI: <b>{filteredTableDudi.length}</b> tempat</span>
-                <span>Konsentrasi Keahlian TKJ SMKN 1 Songgom</span>
+              {/* Google-Style Pagination & Table Footer */}
+              <div className="p-4 bg-neutral-50 border-t border-neutral-200 text-xs text-neutral-600 flex flex-col md:flex-row items-center justify-between gap-4">
+                {/* Left side: Summary and Page Size */}
+                <div className="flex items-center flex-wrap gap-3">
+                  <span>
+                    Menampilkan{' '}
+                    <b>
+                      {filteredTableDudi.length === 0
+                        ? 0
+                        : (safeCurrentPage - 1) * pageSize + 1}{' '}
+                      - {Math.min(safeCurrentPage * pageSize, filteredTableDudi.length)}
+                    </b>{' '}
+                    dari <b>{filteredTableDudi.length}</b> tempat DUDI
+                  </span>
+
+                  <span className="text-neutral-300 hidden sm:inline">|</span>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-neutral-500">Per halaman:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="px-2.5 py-1 bg-white border border-neutral-200 rounded-lg text-xs font-semibold outline-none cursor-pointer"
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Right side: Google-Style Pagination Numbers & Navigation */}
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1 select-none">
+                    {/* Previous Button */}
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={safeCurrentPage === 1}
+                      className={`px-3 py-1.5 rounded-lg flex items-center gap-1 font-semibold text-xs transition-colors ${
+                        safeCurrentPage === 1
+                          ? 'text-neutral-300 cursor-not-allowed'
+                          : 'text-neutral-700 hover:bg-neutral-200 cursor-pointer'
+                      }`}
+                      title="Halaman Sebelumnya"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span className="hidden sm:inline">Sebelumnya</span>
+                    </button>
+
+                    {/* Numeric Pages with Ellipses (like Google Search) */}
+                    <div className="flex items-center gap-1">
+                      {getPaginationPages().map((pageItem, idx) => {
+                        if (typeof pageItem === 'string') {
+                          return (
+                            <span
+                              key={`ellipsis-${idx}`}
+                              className="w-8 h-8 flex items-center justify-center text-neutral-400 font-bold select-none text-xs"
+                            >
+                              ...
+                            </span>
+                          );
+                        }
+                        const isCurrent = pageItem === safeCurrentPage;
+                        return (
+                          <button
+                            key={pageItem}
+                            onClick={() => setCurrentPage(pageItem)}
+                            className={`min-w-8 h-8 px-2 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center justify-center ${
+                              isCurrent
+                                ? 'bg-red-600 text-white shadow-xs'
+                                : 'text-neutral-700 hover:bg-neutral-200 hover:text-neutral-900'
+                            }`}
+                            title={`Ke Halaman ${pageItem}`}
+                          >
+                            {pageItem}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Next Button */}
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={safeCurrentPage === totalPages}
+                      className={`px-3 py-1.5 rounded-lg flex items-center gap-1 font-semibold text-xs transition-colors ${
+                        safeCurrentPage === totalPages
+                          ? 'text-neutral-300 cursor-not-allowed'
+                          : 'text-neutral-700 hover:bg-neutral-200 cursor-pointer'
+                      }`}
+                      title="Halaman Berikutnya"
+                    >
+                      <span className="hidden sm:inline">Berikutnya</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

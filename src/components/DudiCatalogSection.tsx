@@ -16,6 +16,8 @@ import {
   ShieldCheck,
   DollarSign,
   Compass,
+  RotateCcw,
+  X,
 } from 'lucide-react';
 import { Dudi, SchoolLocation } from '../types';
 import {
@@ -227,11 +229,13 @@ export const DudiCatalogSection: React.FC<DudiCatalogSectionProps> = ({
             {hasSelection && (
               <div className="md:pt-5">
                 <button
+                  id="btn-reset-dudi-selection"
                   onClick={handleResetSelection}
-                  className="w-full md:w-auto px-4 py-3 rounded-xl bg-neutral-200 hover:bg-neutral-300 text-neutral-800 text-xs font-bold transition-colors shrink-0 flex items-center justify-center gap-1.5"
-                  title="Tutup daftar DUDI dan reset pilihan dropdown"
+                  className="w-full md:w-auto px-4 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shrink-0 flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:shadow"
+                  title="Klik untuk reset pencarian dan kembali ke default kosong"
                 >
-                  <span>✕ Sembunyikan Daftar</span>
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset Pencarian</span>
                 </button>
               </div>
             )}
@@ -239,19 +243,28 @@ export const DudiCatalogSection: React.FC<DudiCatalogSectionProps> = ({
 
           {/* Quick Filter & Sort Options when a Kabupaten is selected */}
           {selectedKabupaten && (
-            <div className="mt-4 pt-4 border-t border-neutral-200/80 grid grid-cols-1 sm:grid-cols-3 gap-3 items-center text-xs">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-3 top-3" />
+            <div className="mt-4 pt-4 border-t border-neutral-200/80 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center text-xs">
+              <div className="relative sm:col-span-5">
+                <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-3 top-2.5" />
                 <input
                   type="text"
                   placeholder="Cari di wilayah terpilih..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-neutral-300 bg-white text-xs outline-none focus:ring-1 focus:ring-red-500"
+                  className="w-full pl-9 pr-8 py-2 rounded-lg border border-neutral-300 bg-white text-xs outline-none focus:ring-1 focus:ring-red-500"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-2 text-neutral-400 hover:text-neutral-700 p-0.5"
+                    title="Bersihkan teks pencarian"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
-              <div>
+              <div className="sm:col-span-3">
                 <select
                   value={selectedBidang}
                   onChange={(e) => setSelectedBidang(e.target.value)}
@@ -265,7 +278,7 @@ export const DudiCatalogSection: React.FC<DudiCatalogSectionProps> = ({
                 </select>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 sm:col-span-3">
                 <ArrowUpDown className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
                 <select
                   value={sortBy}
@@ -276,6 +289,17 @@ export const DudiCatalogSection: React.FC<DudiCatalogSectionProps> = ({
                   <option value="nama">Urutkan: Nama A - Z</option>
                   <option value="kuota">Urutkan: Kuota Terbanyak</option>
                 </select>
+              </div>
+
+              <div className="sm:col-span-1 flex justify-end">
+                <button
+                  onClick={handleResetSelection}
+                  className="w-full sm:w-auto px-2.5 py-2 rounded-lg border border-neutral-300 hover:border-red-300 hover:bg-red-50 hover:text-red-700 text-neutral-600 font-semibold text-xs flex items-center justify-center gap-1 transition-colors"
+                  title="Reset semua filter ke default"
+                >
+                  <RotateCcw className="w-3 h-3 text-red-600" />
+                  <span>Reset</span>
+                </button>
               </div>
             </div>
           )}
@@ -330,12 +354,22 @@ export const DudiCatalogSection: React.FC<DudiCatalogSectionProps> = ({
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-600" />
                 <span>
-                  Menampilkan <b>{displayedDudi.length}</b> tempat DUDI yang sesuai dengan pilihan dropdown.
+                  Menampilkan <b>{displayedDudi.length}</b> tempat DUDI yang sesuai dengan pilihan.
                 </span>
               </div>
 
-              <div className="text-[11px] text-neutral-400">
-                *Jarak dihitung otomatis dari kampus SMK Negeri 1 Songgom
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleResetSelection}
+                  className="px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-red-50 hover:text-red-700 text-neutral-700 font-bold flex items-center gap-1.5 text-xs transition-colors border border-neutral-200 cursor-pointer"
+                  title="Kembalikan pencarian ke default kosong"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-red-600" />
+                  <span>Reset ke Default Kosong</span>
+                </button>
+                <div className="text-[11px] text-neutral-400 hidden sm:block">
+                  *Jarak dihitung otomatis dari kampus SMK Negeri 1 Songgom
+                </div>
               </div>
             </div>
 
@@ -348,6 +382,13 @@ export const DudiCatalogSection: React.FC<DudiCatalogSectionProps> = ({
                   <p className="text-xs text-neutral-500 mt-1 max-w-sm mx-auto">
                     Coba sesuaikan kata kunci pencarian atau bersihkan filter bidang pekerjaan.
                   </p>
+                  <button
+                    onClick={handleResetSelection}
+                    className="mt-4 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs inline-flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset Pencarian ke Default Kosong</span>
+                  </button>
                 </div>
               ) : (
                 displayedDudi.map((dudi) => {

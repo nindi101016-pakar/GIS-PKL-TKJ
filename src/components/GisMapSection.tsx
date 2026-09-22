@@ -195,13 +195,12 @@ export const GisMapSection: React.FC<GisMapSectionProps> = ({
 
     measureGroup.clearLayers();
 
-    // Custom School Icon - Warna Hijau Telur Asin (#3EB49F / Teal Seafoam)
+    // Custom School Icon - Warna Kuning (#FACC15 / Yellow) tulisan hitam dengan teks SKANSAS
     const schoolIconHtml = `
       <div class="relative flex items-center justify-center">
-        <div class="absolute w-12 h-12 rounded-full animate-ping" style="background-color: rgba(62, 180, 159, 0.35);"></div>
-        <div class="w-10 h-10 rounded-full text-white flex flex-col items-center justify-center font-black text-[10px] shadow-xl border-2 border-white ring-2" style="background-color: #3EB49F; border-color: #ffffff; box-shadow: 0 4px 14px rgba(46, 150, 132, 0.45); ring-color: #2a9482;">
-          <span style="font-size: 9px; font-weight: 900; line-height: 1; color: #ffffff;">SMKN 1</span>
-          <span style="font-size: 7.5px; font-weight: 800; color: #f0fdfa; line-height: 1.2; letter-spacing: 0.3px;">Pusat</span>
+        <div class="absolute w-12 h-12 rounded-full animate-ping" style="background-color: rgba(234, 179, 8, 0.4);"></div>
+        <div class="w-10 h-10 rounded-full flex items-center justify-center font-black shadow-xl border-2 border-neutral-950 ring-2 ring-yellow-400 select-none" style="background-color: #FACC15; color: #000000; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);">
+          <span style="font-size: 8.5px; font-weight: 900; line-height: 1; color: #000000; letter-spacing: -0.3px;">SKANSAS</span>
         </div>
       </div>
     `;
@@ -218,10 +217,10 @@ export const GisMapSection: React.FC<GisMapSectionProps> = ({
       zIndexOffset: 1000,
     }).bindPopup(`
       <div style="font-family: inherit; min-width: 220px;">
-        <div style="font-size: 10px; font-weight: 800; color: #0d9488; text-transform: uppercase; letter-spacing: 0.5px;">Pusat Titik Acuan GIS (Hijau Telur Asin)</div>
+        <div style="font-size: 10px; font-weight: 800; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px;">Pusat Titik Acuan GIS (SKANSAS)</div>
         <h4 style="font-size: 14px; font-weight: 800; margin: 3px 0 6px 0; color: #0f172a;">${school.name}</h4>
         <p style="font-size: 11px; color: #475569; margin-bottom: 8px;">${school.address}</p>
-        <div style="background: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 8px; padding: 7px 9px; font-size: 11px; color: #0f766e; line-height: 1.4;">
+        <div style="background: #fefce8; border: 1px solid #fef08a; border-radius: 8px; padding: 7px 9px; font-size: 11px; color: #854d0e; line-height: 1.4;">
           🏢 <b>Titik Pusat Referensi</b> pengukuran jarak ke seluruh tempat PKL DUDI mitra di Brebes, Tegal, Cirebon, dan sekitarnya.
         </div>
       </div>
@@ -351,7 +350,7 @@ export const GisMapSection: React.FC<GisMapSectionProps> = ({
         <div class="relative group cursor-pointer transition-transform duration-200 ${
           isSelected ? 'scale-125 z-50' : 'hover:scale-110'
         }">
-          <div style="background-color: ${pinColor};" class="w-8 h-8 rounded-full text-white flex items-center justify-center font-bold text-xs shadow-md border-2 border-white ring-1 ring-black/20">
+          <div style="background-color: ${pinColor};" class="w-8 h-8 rounded-full text-white flex items-center justify-center font-black text-[11px] leading-none text-center shadow-md border-2 border-white ring-1 ring-black/25 select-none">
             ${dudi.no}
           </div>
           ${
@@ -598,12 +597,12 @@ export const GisMapSection: React.FC<GisMapSectionProps> = ({
             <div className="absolute top-4 left-4 z-[400] bg-white/95 backdrop-blur-md rounded-xl p-2.5 shadow-md border border-neutral-200 text-[11px] space-y-1.5 pointer-events-auto">
               <div className="font-extrabold text-[10px] text-neutral-500 uppercase tracking-wider">Keterangan Simbol</div>
               <div className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 rounded-full border border-white shadow-xs shrink-0" style={{ backgroundColor: '#3EB49F' }} />
-                <span className="font-bold text-neutral-800">SMKN 1 Songgom (Hijau Telur Asin)</span>
+                <span className="w-3.5 h-3.5 rounded-full border border-neutral-900 shadow-xs shrink-0 flex items-center justify-center font-black text-[6.5px] text-black" style={{ backgroundColor: '#FACC15' }}>★</span>
+                <span className="font-bold text-neutral-800">SMKN 1 Songgom (SKANSAS - Kuning)</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 rounded-full bg-red-600 border border-white shadow-xs shrink-0" />
-                <span className="text-neutral-700">Tempat PKL DUDI TKJ</span>
+                <span className="w-3.5 h-3.5 rounded-full bg-red-600 border border-white shadow-xs shrink-0 flex items-center justify-center font-black text-[7px] text-white">1</span>
+                <span className="text-neutral-700">DUDI (Nomor di Tengah Titik)</span>
               </div>
             </div>
 
