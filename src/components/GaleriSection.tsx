@@ -13,9 +13,11 @@ interface GaleriSectionProps {
   galleryItems: GalleryItem[];
 }
 
-export const GaleriSection: React.FC<GaleriSectionProps> = ({ galleryItems }) => {
+export const GaleriSection: React.FC<GaleriSectionProps> = ({ galleryItems = [] }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
   const [activeItem, setActiveItem] = useState<GalleryItem | null>(null);
+
+  const safeList = Array.isArray(galleryItems) ? galleryItems : [];
 
   const categories = [
     'Semua',
@@ -26,8 +28,8 @@ export const GaleriSection: React.FC<GaleriSectionProps> = ({ galleryItems }) =>
 
   const filteredItems =
     selectedCategory === 'Semua'
-      ? galleryItems
-      : galleryItems.filter((item) => item.category === selectedCategory);
+      ? safeList
+      : safeList.filter((item) => item?.category === selectedCategory);
 
   return (
     <section id="galeri" className="py-14 lg:py-24 bg-neutral-50 border-b border-neutral-200">

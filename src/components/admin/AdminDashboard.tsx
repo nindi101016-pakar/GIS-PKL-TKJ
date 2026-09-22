@@ -20,10 +20,12 @@ import {
   RefreshCw,
   Eye,
   Save,
+  Sparkles,
 } from 'lucide-react';
 import { Dudi, CMSContent, GalleryItem, SchoolLocation } from '../../types';
 import { downloadExcelTemplate, exportDudiToExcel, parseExcelFile } from '../../utils/excel';
-import { isSupabaseConfigured } from '../../lib/supabase';
+import { isSupabaseConfigured, dataService } from '../../lib/supabase';
+import { DEFAULT_CMS_CONTENT } from '../../data/initialData';
 
 interface AdminDashboardProps {
   dudiList: Dudi[];
@@ -42,9 +44,9 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
-  dudiList,
+  dudiList = [],
   cms,
-  gallery,
+  gallery = [],
   school,
   onClose,
   onLogout,
@@ -56,6 +58,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onAddGallery,
   onDeleteGallery,
 }) => {
+  const safeDudiList = Array.isArray(dudiList) ? dudiList : [];
+  const safeGallery = Array.isArray(gallery) ? gallery : [];
+
   const [activeTab, setActiveTab] = useState<'dudi' | 'excel' | 'cms' | 'gallery' | 'database'>('dudi');
   const [searchTable, setSearchTable] = useState('');
   const [filterKab, setFilterKab] = useState('Semua');
@@ -68,9 +73,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [importSuccessMsg, setImportSuccessMsg] = useState('');
 
   // CMS edit states
-  const [heroForm, setHeroForm] = useState(cms.hero);
-  const [tkjForm, setTkjForm] = useState(cms.tkj);
-  const [kontakForm, setKontakForm] = useState(cms.kontak);
+  const [heroForm, setHeroForm] = useState(cms?.hero || DEFAULT_CMS_CONTENT.hero);
+  const [tkjForm, setTkjForm] = useState(cms?.tkj || DEFAULT_CMS_CONTENT.tkj);
+  const [kontakForm, setKontakForm] = useState(cms?.kontak || DEFAULT_CMS_CONTENT.kontak);
   const [cmsSaveMsg, setCmsSaveMsg] = useState('');
 
   // Gallery add state
@@ -86,8 +91,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Copy SQL state
   const [isCopiedSql, setIsCopiedSql] = useState(false);
 
+  // Clean duplicates state
+  const [duplicateCleanMsg, setDuplicateCleanMsg] = useState('');
+  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
+
+  const handleCleanDuplicates = async () => {
+    setIsCleaningDuplicates(true);
+    setDuplicateCleanMsg('');
+    try {
+      const refreshed = await dataService.getDudiList();
+      await onBulkImportDudi(refreshed);
+      setDuplicateCleanMsg(`Berhasil! Data DUDI telah dirapikan tanpa duplikasi. Total saat ini: ${refreshed.length} tempat PKL unik.`);
+      setTimeout(() => setDuplicateCleanMsg(''), 6000);
+    } catch {
+      setDuplicateCleanMsg('Gagal merapikan duplikat.');
+    } finally {
+      setIsCleaningDuplicates(false);
+    }
+  };
+
   // Filtered DUDI for table
-  const filteredTableDudi = dudiList.filter((dudi) => {
+  const filteredTableDudi = safeDudiList.filter((dudi) => {
     const matchSearch =
       !searchTable.trim() ||
       dudi.nama_dudi.toLowerCase().includes(searchTable.toLowerCase()) ||
@@ -490,6 +514,16 @@ SET password = EXCLUDED.password, full_name = EXCLUDED.full_name, role = EXCLUDE
 
               <div className="flex flex-wrap items-center gap-2.5">
                 <button
+                  onClick={handleCleanDuplicates}
+                  disabled={isCleaningDuplicates}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-neutral-300 hover:bg-neutral-100 text-neutral-700 font-bold text-xs transition-colors cursor-pointer"
+                  title="Hilangkan duplikasi data di database dan penyimpanan lokal"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>{isCleaningDuplicates ? 'Merapikan...' : 'Rapikan Duplikat'}</span>
+                </button>
+
+                <button
                   onClick={() => exportDudiToExcel(dudiList)}
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-neutral-300 hover:bg-neutral-100 text-neutral-700 font-bold text-xs transition-colors"
                 >
@@ -506,6 +540,13 @@ SET password = EXCLUDED.password, full_name = EXCLUDED.full_name, role = EXCLUDE
                 </button>
               </div>
             </div>
+
+            {duplicateCleanMsg && (
+              <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs flex items-center gap-2 animate-in fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{duplicateCleanMsg}</span>
+              </div>
+            )}
 
             {/* Filters Bar */}
             <div className="bg-white rounded-2xl p-4 border border-neutral-200 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between text-xs">
@@ -1001,7 +1042,7 @@ SET password = EXCLUDED.password, full_name = EXCLUDED.full_name, role = EXCLUDE
 
               {/* Gallery Items Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {gallery.map((item) => (
+                {safeGallery.map((item) => (
                   <div
                     key={item.id}
                     className="bg-white rounded-xl border border-neutral-200 overflow-hidden shadow-xs flex flex-col justify-between"

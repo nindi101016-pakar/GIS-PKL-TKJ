@@ -16,7 +16,11 @@ interface ManfaatSectionProps {
 }
 
 export const ManfaatSection: React.FC<ManfaatSectionProps> = ({ cms }) => {
-  const getIcon = (target: string) => {
+  const benefits = cms?.manfaat?.benefits || cms?.manfaat?.categories || [];
+  const title = cms?.manfaat?.title || 'Manfaat Sistem Pemetaan GIS';
+  const subtitle = cms?.manfaat?.subtitle || '';
+
+  const getIcon = (target: string = '') => {
     if (target.includes('Siswa')) {
       return <UserCheck className="w-6 h-6 text-red-600" />;
     }
@@ -37,16 +41,16 @@ export const ManfaatSection: React.FC<ManfaatSectionProps> = ({ cms }) => {
             <span>DAMPAK & EFISIENSI SPASIAL</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-black text-neutral-900 tracking-tight">
-            {cms.manfaat.title}
+            {title}
           </h2>
           <p className="text-neutral-600 text-sm sm:text-base mt-3 leading-relaxed">
-            {cms.manfaat.subtitle}
+            {subtitle}
           </p>
         </div>
 
         {/* 3 Pillars Benefit Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {cms.manfaat.benefits.map((benefit, index) => (
+          {benefits.map((benefit, index) => (
             <div
               key={index}
               className="bg-neutral-50 rounded-2xl p-7 border-2 border-neutral-200/90 hover:border-red-500 hover:bg-white shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
@@ -67,7 +71,7 @@ export const ManfaatSection: React.FC<ManfaatSectionProps> = ({ cms }) => {
                 </div>
 
                 <div className="space-y-3 mt-4">
-                  {benefit.points.map((point, pIdx) => (
+                  {(benefit.points || []).map((point, pIdx) => (
                     <div key={pIdx} className="flex items-start gap-2.5 text-xs text-neutral-600 leading-relaxed">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                       <span>{point}</span>

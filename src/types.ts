@@ -37,11 +37,19 @@ export interface CMSContent {
     badge: string;
     headline: string;
     subheadline: string;
-    statsText: string;
+    statsText?: string;
+    primaryCta?: string;
+    secondaryCta?: string;
   };
   tkj: {
     title: string;
     description: string;
+    subtitle?: string;
+    skills?: Array<{
+      title: string;
+      description: string;
+      icon: string;
+    }>;
     competencies: Array<{
       title: string;
       description: string;
@@ -52,6 +60,11 @@ export interface CMSContent {
   manfaat: {
     title: string;
     subtitle: string;
+    categories?: Array<{
+      target: string;
+      points: string[];
+      icon: string;
+    }>;
     benefits: Array<{
       target: string;
       points: string[];

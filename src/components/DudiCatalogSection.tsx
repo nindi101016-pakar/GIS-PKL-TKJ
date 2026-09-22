@@ -47,8 +47,10 @@ export const DudiCatalogSection: React.FC<DudiCatalogSectionProps> = ({
   const [sortBy, setSortBy] = useState<'jarak' | 'nama' | 'kuota'>('jarak');
 
   // Compute distance from school
+  const safeDudiList = useMemo(() => (Array.isArray(dudiList) ? dudiList : []), [dudiList]);
+
   const dudiWithDistance = useMemo(() => {
-    return dudiList.map((dudi) => {
+    return safeDudiList.map((dudi) => {
       const dist = calculateHaversineDistance(
         school.latitude,
         school.longitude,
@@ -60,22 +62,22 @@ export const DudiCatalogSection: React.FC<DudiCatalogSectionProps> = ({
         jarakKm: dist,
       };
     });
-  }, [dudiList, school]);
+  }, [safeDudiList, school]);
 
   // Unique kabupaten counts
   const kabupatenStats = useMemo(() => {
     const map = new Map<string, number>();
-    dudiList.forEach((d) => {
-      const kab = d.kabupaten || 'Lainnya';
+    safeDudiList.forEach((d) => {
+      const kab = d?.kabupaten || 'Lainnya';
       map.set(kab, (map.get(kab) || 0) + 1);
     });
     return map;
-  }, [dudiList]);
+  }, [safeDudiList]);
 
-  // Has user made a selection from either dropdown?
-  const hasSelection = Boolean(selectedKabupaten || selectedDudiId);
+  // Has user made a selection from dropdown OR typed into search?
+  const hasSelection = Boolean(selectedKabupaten || selectedDudiId || searchQuery.trim());
 
-  // Filtered & Sorted DUDI based on active dropdown selection
+  // Filtered & Sorted DUDI based on active dropdown selection or search
   const displayedDudi = useMemo(() => {
     if (!hasSelection) return [];
 
@@ -88,14 +90,17 @@ export const DudiCatalogSection: React.FC<DudiCatalogSectionProps> = ({
 
         // If a kabupaten was selected
         const matchesKabupaten =
-          selectedKabupaten === 'Semua' || dudi.kabupaten === selectedKabupaten;
+          !selectedKabupaten ||
+          selectedKabupaten === 'Semua' ||
+          dudi.kabupaten === selectedKabupaten;
 
         const matchesSearch =
           !searchQuery.trim() ||
           dudi.nama_dudi.toLowerCase().includes(searchQuery.toLowerCase()) ||
           dudi.alamat.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          dudi.pimpinan?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          dudi.bidang_pekerjaan.toLowerCase().includes(searchQuery.toLowerCase());
+          (dudi.pimpinan && dudi.pimpinan.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (dudi.bidang_pekerjaan && dudi.bidang_pekerjaan.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (dudi.kabupaten && dudi.kabupaten.toLowerCase().includes(searchQuery.toLowerCase()));
 
         const matchesBidang =
           selectedBidang === 'Semua' ||
@@ -207,8 +212,8 @@ export const DudiCatalogSection: React.FC<DudiCatalogSectionProps> = ({
                       : 'border-neutral-300 bg-white text-neutral-800 hover:border-neutral-400 focus:border-red-500'
                   }`}
                 >
-                  <option value="">-- Atau Pilih Langsung Tempat DUDI ({dudiList.length} Pilihan) --</option>
-                  {dudiList.map((d) => (
+                  <option value="">-- Atau Pilih Langsung Tempat DUDI ({safeDudiList.length} Pilihan) --</option>
+                  {safeDudiList.map((d) => (
                     <option key={d.id} value={d.id}>
                       No. {d.no} - {d.nama_dudi} ({d.kabupaten})
                     </option>
@@ -310,7 +315,7 @@ export const DudiCatalogSection: React.FC<DudiCatalogSectionProps> = ({
                   onClick={() => handleSelectKabupaten('Semua')}
                   className="px-3.5 py-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
                 >
-                  Tampilkan Semua (32 DUDI)
+                  Tampilkan Semua ({dudiList.length} DUDI)
                 </button>
               </div>
             </div>

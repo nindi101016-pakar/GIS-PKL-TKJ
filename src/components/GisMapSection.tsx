@@ -61,14 +61,16 @@ export const GisMapSection: React.FC<GisMapSectionProps> = ({
   const [showMobileList, setShowMobileList] = useState(false);
 
   // Available unique districts and jobs for filters
+  const safeDudiList = useMemo(() => (Array.isArray(dudiList) ? dudiList : []), [dudiList]);
+
   const kabupatenList = useMemo(() => {
-    const set = new Set(dudiList.map((d) => d.kabupaten || 'Lainnya'));
+    const set = new Set(safeDudiList.map((d) => d?.kabupaten || 'Lainnya'));
     return ['Semua', ...Array.from(set)];
-  }, [dudiList]);
+  }, [safeDudiList]);
 
   // Calculate distance from current origin to all DUDIs
   const dudiWithDistance = useMemo(() => {
-    return dudiList.map((dudi) => {
+    return safeDudiList.map((dudi) => {
       const dist = calculateHaversineDistance(
         origin.latitude,
         origin.longitude,
@@ -80,7 +82,7 @@ export const GisMapSection: React.FC<GisMapSectionProps> = ({
         jarakKm: dist,
       };
     });
-  }, [dudiList, origin]);
+  }, [safeDudiList, origin]);
 
   // Filtered DUDI list
   const filteredDudi = useMemo(() => {
@@ -96,7 +98,9 @@ export const GisMapSection: React.FC<GisMapSectionProps> = ({
           !mapSearch.trim() ||
           dudi.nama_dudi.toLowerCase().includes(mapSearch.toLowerCase()) ||
           dudi.alamat.toLowerCase().includes(mapSearch.toLowerCase()) ||
-          dudi.pimpinan?.toLowerCase().includes(mapSearch.toLowerCase());
+          (dudi.pimpinan && dudi.pimpinan.toLowerCase().includes(mapSearch.toLowerCase())) ||
+          (dudi.bidang_pekerjaan && dudi.bidang_pekerjaan.toLowerCase().includes(mapSearch.toLowerCase())) ||
+          (dudi.kabupaten && dudi.kabupaten.toLowerCase().includes(mapSearch.toLowerCase()));
         return matchKab && matchBidang && matchSearch;
       })
       .sort((a, b) => (a.jarakKm || 0) - (b.jarakKm || 0));
@@ -191,13 +195,13 @@ export const GisMapSection: React.FC<GisMapSectionProps> = ({
 
     measureGroup.clearLayers();
 
-    // Custom School Icon
+    // Custom School Icon - Warna Hijau Telur Asin (#3EB49F / Teal Seafoam)
     const schoolIconHtml = `
       <div class="relative flex items-center justify-center">
-        <div class="absolute w-12 h-12 rounded-full bg-red-600/25 animate-ping"></div>
-        <div class="w-10 h-10 rounded-full bg-red-700 text-white flex flex-col items-center justify-center font-black text-[10px] shadow-xl border-2 border-white ring-2 ring-red-500">
-          <span>SMKN 1</span>
-          <span class="text-[8px] text-yellow-300">Pusat</span>
+        <div class="absolute w-12 h-12 rounded-full animate-ping" style="background-color: rgba(62, 180, 159, 0.35);"></div>
+        <div class="w-10 h-10 rounded-full text-white flex flex-col items-center justify-center font-black text-[10px] shadow-xl border-2 border-white ring-2" style="background-color: #3EB49F; border-color: #ffffff; box-shadow: 0 4px 14px rgba(46, 150, 132, 0.45); ring-color: #2a9482;">
+          <span style="font-size: 9px; font-weight: 900; line-height: 1; color: #ffffff;">SMKN 1</span>
+          <span style="font-size: 7.5px; font-weight: 800; color: #f0fdfa; line-height: 1.2; letter-spacing: 0.3px;">Pusat</span>
         </div>
       </div>
     `;
@@ -213,12 +217,12 @@ export const GisMapSection: React.FC<GisMapSectionProps> = ({
       icon: schoolIcon,
       zIndexOffset: 1000,
     }).bindPopup(`
-      <div style="font-family: inherit; min-width: 200px;">
-        <div style="font-size: 10px; font-weight: bold; color: #b91c1c; text-transform: uppercase;">Pusat Titik Acuan GIS</div>
-        <h4 style="font-size: 14px; font-weight: 800; margin: 2px 0 6px 0; color: #171717;">${school.name}</h4>
-        <p style="font-size: 11px; color: #525252; margin-bottom: 6px;">${school.address}</p>
-        <div style="background: #fef2f2; border: 1px solid #fee2e2; border-radius: 6px; padding: 6px; font-size: 11px; color: #991b1b;">
-          Titik koordinat referensi pengukuran jarak ke seluruh DUDI mitra.
+      <div style="font-family: inherit; min-width: 220px;">
+        <div style="font-size: 10px; font-weight: 800; color: #0d9488; text-transform: uppercase; letter-spacing: 0.5px;">Pusat Titik Acuan GIS (Hijau Telur Asin)</div>
+        <h4 style="font-size: 14px; font-weight: 800; margin: 3px 0 6px 0; color: #0f172a;">${school.name}</h4>
+        <p style="font-size: 11px; color: #475569; margin-bottom: 8px;">${school.address}</p>
+        <div style="background: #f0fdfa; border: 1px solid #ccfbf1; border-radius: 8px; padding: 7px 9px; font-size: 11px; color: #0f766e; line-height: 1.4;">
+          🏢 <b>Titik Pusat Referensi</b> pengukuran jarak ke seluruh tempat PKL DUDI mitra di Brebes, Tegal, Cirebon, dan sekitarnya.
         </div>
       </div>
     `);
@@ -590,6 +594,19 @@ export const GisMapSection: React.FC<GisMapSectionProps> = ({
           
           {/* Main Map Box (8 cols) */}
           <div className="lg:col-span-8 bg-white rounded-2xl p-2 shadow-sm border border-neutral-200 relative flex flex-col h-[520px] sm:h-[600px]">
+            {/* Map Legend (Top Left) */}
+            <div className="absolute top-4 left-4 z-[400] bg-white/95 backdrop-blur-md rounded-xl p-2.5 shadow-md border border-neutral-200 text-[11px] space-y-1.5 pointer-events-auto">
+              <div className="font-extrabold text-[10px] text-neutral-500 uppercase tracking-wider">Keterangan Simbol</div>
+              <div className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-full border border-white shadow-xs shrink-0" style={{ backgroundColor: '#3EB49F' }} />
+                <span className="font-bold text-neutral-800">SMKN 1 Songgom (Hijau Telur Asin)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-full bg-red-600 border border-white shadow-xs shrink-0" />
+                <span className="text-neutral-700">Tempat PKL DUDI TKJ</span>
+              </div>
+            </div>
+
             {/* Map Controls Overlay (Top Right) */}
             <div className="absolute top-4 right-4 z-[400] flex flex-col gap-2">
               {/* Tile switcher */}
@@ -716,10 +733,10 @@ export const GisMapSection: React.FC<GisMapSectionProps> = ({
               <div className="flex items-center justify-between">
                 <h3 className="font-extrabold text-neutral-900 text-sm flex items-center gap-1.5">
                   <Navigation2 className="w-4 h-4 text-red-600" />
-                  <span>DUDI Terdekat ({filteredDudi.length})</span>
+                  <span>Daftar DUDI</span>
                 </h3>
-                <span className="text-[11px] text-neutral-500">
-                  dari {origin.type === 'school' ? 'SMKN 1' : 'titik acuan'}
+                <span className="text-[11px] text-neutral-500 font-medium">
+                  {filteredDudi.length} Tempat • dari {origin.type === 'school' ? 'SMKN 1' : 'titik acuan'}
                 </span>
               </div>
 

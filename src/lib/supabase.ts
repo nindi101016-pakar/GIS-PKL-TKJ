@@ -23,18 +23,192 @@ const LS_CMS_KEY = 'smkn1songgom_cms_content_v2';
 const LS_GALLERY_KEY = 'smkn1songgom_gallery_v2';
 const LS_ADMIN_KEY = 'smkn1songgom_admin_auth_v2';
 
+// Fungsi penjamin keunikan data DUDI (menghilangkan duplikasi akibat re-run sql atau import ganda)
+export function deduplicateDudiList(list: Dudi[]): Dudi[] {
+  if (!Array.isArray(list) || list.length === 0) return [];
+  const mapByNo = new Map<number, Dudi>();
+  const mapByName = new Map<string, Dudi>();
+  const unindexed: Dudi[] = [];
+
+  for (const item of list) {
+    if (!item) continue;
+    const no = typeof item.no === 'number' ? item.no : parseInt(String(item.no || ''));
+    const cleanName = item.nama_dudi?.trim().toLowerCase();
+
+    if (!isNaN(no) && no > 0) {
+      const existing = mapByNo.get(no);
+      if (!existing) {
+        mapByNo.set(no, item);
+      } else {
+        // Ambil data yang paling mutakhir (berdasarkan updated_at atau kelengkapan data)
+        const existingTime = new Date(existing.updated_at || existing.created_at || 0).getTime();
+        const itemTime = new Date(item.updated_at || item.created_at || 0).getTime();
+        if (itemTime >= existingTime) {
+          mapByNo.set(no, item);
+        }
+      }
+    } else if (cleanName) {
+      const existing = mapByName.get(cleanName);
+      if (!existing) {
+        mapByName.set(cleanName, item);
+      }
+    } else {
+      unindexed.push(item);
+    }
+  }
+
+  const combined = [
+    ...Array.from(mapByNo.values()),
+    ...Array.from(mapByName.values()).filter((d) => !mapByNo.has(Number(d.no))),
+    ...unindexed,
+  ];
+
+  // Pastikan ID dan No benar-benar unik
+  const finalMap = new Map<string, Dudi>();
+  for (const item of combined) {
+    const key = item.no ? `no-${item.no}` : `id-${item.id}`;
+    finalMap.set(key, item);
+  }
+
+  return Array.from(finalMap.values()).sort((a, b) => (Number(a.no) || 0) - (Number(b.no) || 0));
+}
+
+// Normalize CMS content to guarantee all required fields and arrays exist
+export function normalizeCMSContent(raw: any): CMSContent {
+  const base = { ...DEFAULT_CMS_CONTENT };
+  if (!raw || typeof raw !== 'object') {
+    return base;
+  }
+
+  let parsedRaw = raw;
+  if (typeof raw === 'string') {
+    try {
+      parsedRaw = JSON.parse(raw);
+    } catch {
+      return base;
+    }
+  }
+
+  const parseSection = (val: any) => {
+    if (!val) return {};
+    if (typeof val === 'string') {
+      try {
+        return JSON.parse(val);
+      } catch {
+        return {};
+      }
+    }
+    return typeof val === 'object' ? val : {};
+  };
+
+  const heroRaw = parseSection(parsedRaw.hero);
+  const tkjRaw = parseSection(parsedRaw.tkj);
+  const manfaatRaw = parseSection(parsedRaw.manfaat);
+  const kontakRaw = parseSection(parsedRaw.kontak);
+
+  // Handle competencies vs skills
+  const rawCompetencies = tkjRaw.competencies || tkjRaw.skills;
+  const competencies = Array.isArray(rawCompetencies) && rawCompetencies.length > 0
+    ? rawCompetencies.map((c: any) => ({
+        title: c?.title || '',
+        description: c?.description || '',
+        icon: c?.icon || 'Network',
+      }))
+    : base.tkj.competencies;
+
+  const rawCareer = tkjRaw.careerOpportunities || tkjRaw.career_opportunities || tkjRaw.careers;
+  const careerOpportunities = Array.isArray(rawCareer) && rawCareer.length > 0
+    ? rawCareer
+    : base.tkj.careerOpportunities;
+
+  // Handle benefits vs categories
+  const rawBenefits = manfaatRaw.benefits || manfaatRaw.categories;
+  const benefits = Array.isArray(rawBenefits) && rawBenefits.length > 0
+    ? rawBenefits.map((b: any) => ({
+        target: b?.target || b?.title || '',
+        points: Array.isArray(b?.points) ? b.points : [],
+        icon: b?.icon || 'UserCheck',
+      }))
+    : base.manfaat.benefits;
+
+  return {
+    hero: {
+      badge: heroRaw.badge || base.hero.badge,
+      headline: heroRaw.headline || base.hero.headline,
+      subheadline: heroRaw.subheadline || base.hero.subheadline,
+      statsText: heroRaw.statsText || base.hero.statsText || '',
+      primaryCta: heroRaw.primaryCta || 'Jelajahi Peta GIS',
+      secondaryCta: heroRaw.secondaryCta || 'Katalog 32 DUDI',
+    },
+    tkj: {
+      title: tkjRaw.title || base.tkj.title,
+      description: tkjRaw.description || tkjRaw.subtitle || base.tkj.description,
+      subtitle: tkjRaw.subtitle || tkjRaw.description || base.tkj.description,
+      skills: competencies,
+      competencies,
+      careerOpportunities,
+    },
+    manfaat: {
+      title: manfaatRaw.title || base.manfaat.title,
+      subtitle: manfaatRaw.subtitle || base.manfaat.subtitle,
+      categories: benefits,
+      benefits,
+    },
+    kontak: {
+      address: kontakRaw.address || base.kontak.address,
+      email: kontakRaw.email || base.kontak.email,
+      phone: kontakRaw.phone || base.kontak.phone,
+      website: kontakRaw.website || base.kontak.website,
+      operatingHours: kontakRaw.operatingHours || kontakRaw.jam_kerja || base.kontak.operatingHours,
+      googleMapsEmbed: kontakRaw.googleMapsEmbed || base.kontak.googleMapsEmbed,
+    },
+  };
+}
+
 // Initialize localStorage with initial data if empty or outdated
 function initLocalStorage() {
   if (typeof window === 'undefined') return;
-  if (!localStorage.getItem(LS_DUDI_KEY)) {
-    localStorage.setItem(LS_DUDI_KEY, JSON.stringify(INITIAL_DUDI_LIST));
+  const storedDudi = localStorage.getItem(LS_DUDI_KEY);
+  if (!storedDudi) {
+    localStorage.setItem(LS_DUDI_KEY, JSON.stringify(deduplicateDudiList(INITIAL_DUDI_LIST)));
+  } else {
+    try {
+      const parsed = JSON.parse(storedDudi);
+      // Bersihkan jika terdapat duplikasi tersimpan
+      const cleaned = deduplicateDudiList(parsed);
+      if (cleaned.length !== parsed.length) {
+        localStorage.setItem(LS_DUDI_KEY, JSON.stringify(cleaned));
+      }
+    } catch {
+      localStorage.setItem(LS_DUDI_KEY, JSON.stringify(deduplicateDudiList(INITIAL_DUDI_LIST)));
+    }
   }
+
   const storedCms = localStorage.getItem(LS_CMS_KEY);
   if (!storedCms) {
     localStorage.setItem(LS_CMS_KEY, JSON.stringify(DEFAULT_CMS_CONTENT));
+  } else {
+    try {
+      const parsed = JSON.parse(storedCms);
+      const normalized = normalizeCMSContent(parsed);
+      localStorage.setItem(LS_CMS_KEY, JSON.stringify(normalized));
+    } catch {
+      localStorage.setItem(LS_CMS_KEY, JSON.stringify(DEFAULT_CMS_CONTENT));
+    }
   }
-  if (!localStorage.getItem(LS_GALLERY_KEY)) {
+
+  const storedGallery = localStorage.getItem(LS_GALLERY_KEY);
+  if (!storedGallery) {
     localStorage.setItem(LS_GALLERY_KEY, JSON.stringify(INITIAL_GALLERY));
+  } else {
+    try {
+      const parsed = JSON.parse(storedGallery);
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        localStorage.setItem(LS_GALLERY_KEY, JSON.stringify(INITIAL_GALLERY));
+      }
+    } catch {
+      localStorage.setItem(LS_GALLERY_KEY, JSON.stringify(INITIAL_GALLERY));
+    }
   }
 }
 
@@ -51,9 +225,19 @@ export const dataService = {
           .order('no', { ascending: true });
 
         if (!error && data && data.length > 0) {
-          const list = data as Dudi[];
-          localStorage.setItem(LS_DUDI_KEY, JSON.stringify(list));
-          return list;
+          const rawList = data as Dudi[];
+          const cleanList = deduplicateDudiList(rawList);
+          
+          // Jika di database ada baris duplikat (misal 128 baris padahal aslinya 32),
+          // jalankan pembersihan di background agar database rapi kembali
+          if (cleanList.length < rawList.length) {
+            this.cleanupDatabaseDuplicates(rawList, cleanList).catch((e) =>
+              console.warn('Background cleanup duplicate notice:', e)
+            );
+          }
+
+          localStorage.setItem(LS_DUDI_KEY, JSON.stringify(cleanList));
+          return cleanList;
         }
       } catch (err) {
         console.warn('Supabase dudi fetch error, using local fallback:', err);
@@ -63,16 +247,38 @@ export const dataService = {
     try {
       const stored = localStorage.getItem(LS_DUDI_KEY);
       if (stored) {
-        return JSON.parse(stored) as Dudi[];
+        const parsed = JSON.parse(stored) as Dudi[];
+        const cleaned = deduplicateDudiList(parsed);
+        return cleaned;
       }
     } catch {
       // fallback
     }
-    return INITIAL_DUDI_LIST;
+    return deduplicateDudiList(INITIAL_DUDI_LIST);
+  },
+
+  // Bersihkan record duplikat yang ada di tabel Supabase
+  async cleanupDatabaseDuplicates(allRows: Dudi[], keptRows: Dudi[]): Promise<number> {
+    if (!supabase) return 0;
+    try {
+      const keptIds = new Set(keptRows.map((k) => k.id));
+      const duplicateIds = allRows.filter((r) => !keptIds.has(r.id)).map((r) => r.id);
+      
+      if (duplicateIds.length > 0) {
+        await supabase.from('dudi').delete().in('id', duplicateIds);
+        console.log(`Berhasil membersihkan ${duplicateIds.length} baris duplikat di Supabase dudi.`);
+      }
+      return duplicateIds.length;
+    } catch (err) {
+      console.warn('Gagal membersihkan duplikat Supabase:', err);
+      return 0;
+    }
   },
 
   async addDudi(item: Omit<Dudi, 'id'>): Promise<Dudi> {
-    const determinedId = item.no ? `dudi-${item.no}` : `dudi-${Date.now()}`;
+    const determinedId = item.no
+      ? `b0000000-0000-0000-0000-${String(item.no).padStart(12, '0')}`
+      : `b0000000-0000-0000-0000-${String(Date.now()).slice(-12)}`;
     const newItem: Dudi = {
       ...item,
       id: determinedId,
@@ -104,31 +310,34 @@ export const dataService = {
   async updateDudi(id: string, updates: Partial<Dudi>): Promise<Dudi> {
     let updatedDbItem: Dudi | null = null;
     const nowStr = new Date().toISOString();
+    const currentList = await this.getDudiList();
+    const existingItem = currentList.find(
+      (item) => item.id === id || (updates.no !== undefined && item.no === updates.no)
+    );
+    const targetNo = updates.no !== undefined ? updates.no : existingItem?.no;
 
     if (supabase) {
       try {
-        // 1. Coba update berdasarkan ID
+        const updatePayload = { ...updates, updated_at: nowStr };
+        
+        // 1. Update berdasarkan ID
         const { data, error } = await supabase
           .from('dudi')
-          .update({ ...updates, updated_at: nowStr })
+          .update(updatePayload)
           .eq('id', id)
-          .select()
-          .maybeSingle();
+          .select();
 
-        if (!error && data) {
-          updatedDbItem = data as Dudi;
-        } else if (updates.no !== undefined) {
-          // 2. Fallback update berdasarkan nomor urut jika ID lokal berbeda dari ID database
-          const { data: dataByNo, error: errByNo } = await supabase
+        if (!error && data && data.length > 0) {
+          updatedDbItem = data[0] as Dudi;
+        }
+
+        // 2. Jika ada nomor urut, pastikan SELURUH baris dengan nomor urut ini diupdate
+        // sehingga jika ada baris duplikat lama, nama lama tidak akan pernah muncul lagi
+        if (targetNo !== undefined) {
+          await supabase
             .from('dudi')
-            .update({ ...updates, updated_at: nowStr })
-            .eq('no', updates.no)
-            .select()
-            .maybeSingle();
-
-          if (!errByNo && dataByNo) {
-            updatedDbItem = dataByNo as Dudi;
-          }
+            .update(updatePayload)
+            .eq('no', targetNo);
         }
       } catch (err) {
         console.warn('Supabase dudi update error:', err);
@@ -136,36 +345,21 @@ export const dataService = {
     }
 
     // Update Local Storage secara ketat agar nama lama tidak pernah tertinggal
-    const currentList = await this.getDudiList();
-    const targetIdx = currentList.findIndex(
-      (item) => item.id === id || (updates.no !== undefined && item.no === updates.no)
-    );
+    const mergedItem: Dudi = {
+      ...(existingItem || ({} as Dudi)),
+      ...updates,
+      id: updatedDbItem?.id || id,
+      updated_at: nowStr,
+    };
 
-    const mergedItem: Dudi = updatedDbItem
-      ? updatedDbItem
-      : {
-          ...(targetIdx !== -1 ? currentList[targetIdx] : ({} as Dudi)),
-          ...updates,
-          id: id,
-          updated_at: nowStr,
-        };
-
-    let updatedList: Dudi[];
-    if (targetIdx !== -1) {
-      updatedList = [...currentList];
-      updatedList[targetIdx] = mergedItem;
-    } else {
-      updatedList = [mergedItem, ...currentList];
-    }
-
-    // Pastikan tidak ada duplikasi nomor urut atau ID
-    const uniqueMap = new Map<string, Dudi>();
-    updatedList.forEach((d) => {
-      const key = `${d.no || d.id}`;
-      uniqueMap.set(key, d);
+    const nextList = currentList.map((item) => {
+      if (item.id === id || (targetNo !== undefined && item.no === targetNo)) {
+        return mergedItem;
+      }
+      return item;
     });
-    const cleanList = Array.from(uniqueMap.values()).sort((a, b) => (a.no || 0) - (b.no || 0));
 
+    const cleanList = deduplicateDudiList(nextList);
     localStorage.setItem(LS_DUDI_KEY, JSON.stringify(cleanList));
     return mergedItem;
   },
@@ -184,16 +378,18 @@ export const dataService = {
   },
 
   async bulkSaveDudi(items: Dudi[]): Promise<Dudi[]> {
+    const cleanItems = deduplicateDudiList(items);
     if (supabase) {
       try {
         const { data, error } = await supabase
           .from('dudi')
-          .upsert(items, { onConflict: 'id' })
+          .upsert(cleanItems, { onConflict: 'id' })
           .select();
 
         if (!error && data && data.length > 0) {
-          localStorage.setItem(LS_DUDI_KEY, JSON.stringify(data));
-          return data as Dudi[];
+          const cleanSaved = deduplicateDudiList(data as Dudi[]);
+          localStorage.setItem(LS_DUDI_KEY, JSON.stringify(cleanSaved));
+          return cleanSaved;
         }
       } catch (err) {
         console.warn('Supabase bulk upsert error:', err);
@@ -204,10 +400,10 @@ export const dataService = {
     const currentList = await this.getDudiList();
     const itemMap = new Map<string, Dudi>();
     currentList.forEach((it) => itemMap.set(it.id, it));
-    items.forEach((it) => {
+    cleanItems.forEach((it) => {
       itemMap.set(it.id, it);
     });
-    const merged = Array.from(itemMap.values()).sort((a, b) => (a.no || 0) - (b.no || 0));
+    const merged = deduplicateDudiList(Array.from(itemMap.values()));
     localStorage.setItem(LS_DUDI_KEY, JSON.stringify(merged));
     return merged;
   },
@@ -218,7 +414,6 @@ export const dataService = {
       const list: Dudi[] = stored ? JSON.parse(stored) : INITIAL_DUDI_LIST;
       let nextList: Dudi[];
       if (action === 'add') {
-        // Cek jika sudah ada dengan id atau no yang sama
         const exists = list.some((d) => d.id === item.id || (item.no && d.no === item.no));
         if (exists) {
           nextList = list.map((d) => (d.id === item.id || (item.no && d.no === item.no) ? item : d));
@@ -228,10 +423,10 @@ export const dataService = {
       } else if (action === 'update') {
         nextList = list.map((d) => (d.id === item.id || (item.no && d.no === item.no) ? item : d));
       } else {
-        nextList = list.filter((d) => d.id !== item.id);
+        nextList = list.filter((d) => d.id !== item.id && (!item.no || d.no !== item.no));
       }
-      nextList.sort((a, b) => (a.no || 0) - (b.no || 0));
-      localStorage.setItem(LS_DUDI_KEY, JSON.stringify(nextList));
+      const cleaned = deduplicateDudiList(nextList);
+      localStorage.setItem(LS_DUDI_KEY, JSON.stringify(cleaned));
     } catch {
       // ignore
     }
@@ -247,13 +442,21 @@ export const dataService = {
           const cmsMap: any = { ...DEFAULT_CMS_CONTENT };
           data.forEach((row) => {
             const key = row.kunci || row.key;
-            const val = row.nilai || row.value;
-            if (key && val) {
+            let val = row.nilai ?? row.value;
+            if (key && val !== undefined) {
+              if (typeof val === 'string') {
+                try {
+                  val = JSON.parse(val);
+                } catch {
+                  // ignore
+                }
+              }
               cmsMap[key] = val;
             }
           });
-          localStorage.setItem(LS_CMS_KEY, JSON.stringify(cmsMap));
-          return cmsMap as CMSContent;
+          const normalized = normalizeCMSContent(cmsMap);
+          localStorage.setItem(LS_CMS_KEY, JSON.stringify(normalized));
+          return normalized;
         }
 
         // Fallback coba tabel cms_content jika tabel pengaturan belum dibuat
@@ -262,13 +465,21 @@ export const dataService = {
           const cmsMap: any = { ...DEFAULT_CMS_CONTENT };
           legacyData.forEach((row) => {
             const key = row.key || row.kunci;
-            const val = row.value || row.nilai;
-            if (key && val) {
+            let val = row.value ?? row.nilai;
+            if (key && val !== undefined) {
+              if (typeof val === 'string') {
+                try {
+                  val = JSON.parse(val);
+                } catch {
+                  // ignore
+                }
+              }
               cmsMap[key] = val;
             }
           });
-          localStorage.setItem(LS_CMS_KEY, JSON.stringify(cmsMap));
-          return cmsMap as CMSContent;
+          const normalized = normalizeCMSContent(cmsMap);
+          localStorage.setItem(LS_CMS_KEY, JSON.stringify(normalized));
+          return normalized;
         }
       } catch (err) {
         console.warn('Supabase pengaturan fetch error, using local fallback:', err);
@@ -278,7 +489,9 @@ export const dataService = {
     try {
       const stored = localStorage.getItem(LS_CMS_KEY);
       if (stored) {
-        return JSON.parse(stored) as CMSContent;
+        const parsed = JSON.parse(stored);
+        const normalized = normalizeCMSContent(parsed);
+        return normalized;
       }
     } catch {
       // fallback

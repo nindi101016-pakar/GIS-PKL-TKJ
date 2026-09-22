@@ -18,6 +18,11 @@ interface TentangTkjSectionProps {
 }
 
 export const TentangTkjSection: React.FC<TentangTkjSectionProps> = ({ cms }) => {
+  const competencies = cms?.tkj?.competencies || cms?.tkj?.skills || [];
+  const careerOpportunities = cms?.tkj?.careerOpportunities || [];
+  const title = cms?.tkj?.title || 'Konsentrasi Keahlian Teknik Komputer & Jaringan';
+  const description = cms?.tkj?.description || cms?.tkj?.subtitle || '';
+
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case 'Network':
@@ -44,16 +49,16 @@ export const TentangTkjSection: React.FC<TentangTkjSectionProps> = ({ cms }) => 
             <span>KONSENTRASI KEAHLIAN VOKASI</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-black text-neutral-900 tracking-tight">
-            {cms.tkj.title}
+            {title}
           </h2>
           <p className="text-neutral-600 text-sm sm:text-base mt-3 leading-relaxed">
-            {cms.tkj.description}
+            {description}
           </p>
         </div>
 
         {/* 4 Competency Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {cms.tkj.competencies.map((comp, index) => (
+          {competencies.map((comp, index) => (
             <div
               key={index}
               className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-xs hover:shadow-xl hover:border-red-400 transition-all duration-300 flex flex-col justify-between group"
@@ -105,7 +110,7 @@ export const TentangTkjSection: React.FC<TentangTkjSectionProps> = ({ cms }) => 
                 Prospek Karir & Penempatan PKL Siswa TKJ
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-neutral-200">
-                {cms.tkj.careerOpportunities.map((career, idx) => (
+                {careerOpportunities.map((career, idx) => (
                   <div key={idx} className="flex items-center gap-2 bg-white/5 p-2 rounded-lg border border-white/5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span className="font-medium">{career}</span>

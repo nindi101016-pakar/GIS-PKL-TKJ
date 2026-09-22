@@ -29,19 +29,26 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 }) => {
   const [quickSearch, setQuickSearch] = React.useState('');
 
-  const totalKuota = dudiList.reduce((acc, curr) => acc + (curr.maksimal_siswa || 0), 0);
-  const totalBrebes = dudiList.filter((d) => d.kabupaten === 'Kab. Brebes').length;
-  const totalTegal = dudiList.filter((d) => d.kabupaten?.includes('Tegal')).length;
+  const list = Array.isArray(dudiList) ? dudiList : [];
+  const totalKuota = list.reduce((acc, curr) => acc + (curr.maksimal_siswa || 0), 0);
+  const totalBrebes = list.filter((d) => d.kabupaten === 'Kab. Brebes').length;
+  const totalTegal = list.filter((d) => d.kabupaten?.includes('Tegal')).length;
+
+  const headline = cms?.hero?.headline || 'Sistem Informasi Geografis Pemetaan Tempat PKL TKJ Brebes dan Sekitarnya';
+  const subheadline = cms?.hero?.subheadline || '';
 
   const filteredQuickDudi = quickSearch.trim()
-    ? dudiList
-        .filter(
-          (d) =>
-            d.nama_dudi.toLowerCase().includes(quickSearch.toLowerCase()) ||
-            d.bidang_pekerjaan.toLowerCase().includes(quickSearch.toLowerCase()) ||
-            d.alamat.toLowerCase().includes(quickSearch.toLowerCase())
-        )
-        .slice(0, 5)
+    ? list.filter((d) => {
+        const query = quickSearch.toLowerCase();
+        return (
+          d.nama_dudi.toLowerCase().includes(query) ||
+          (d.bidang_pekerjaan && d.bidang_pekerjaan.toLowerCase().includes(query)) ||
+          d.alamat.toLowerCase().includes(query) ||
+          (d.pimpinan && d.pimpinan.toLowerCase().includes(query)) ||
+          (d.kabupaten && d.kabupaten.toLowerCase().includes(query)) ||
+          (d.jenis_dudi && d.jenis_dudi.toLowerCase().includes(query))
+        );
+      })
     : [];
 
   return (
@@ -61,12 +68,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* School Tag Badge */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm font-semibold tracking-wide">
               <span className="w-2 h-2 rounded-full bg-red-600 animate-ping" />
-              <span>{school.name} • {school.departmentName}</span>
+              <span>{school?.name || 'SMK Negeri 1 Songgom'} • {school?.departmentName || 'Teknik Komputer & Jaringan'}</span>
             </div>
 
             {/* Main Headline */}
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-neutral-900 tracking-tight leading-[1.15]">
-              {cms.hero.headline.split(' ').map((word, i) => {
+              {headline.split(' ').map((word, i) => {
                 const cleanWord = word.replace(/[^a-zA-Z0-9&]/g, '');
                 const isHighlight = ['PKL', 'Teknik', 'Komputer', '&', 'Jaringan', 'Brebes'].includes(cleanWord);
                 return (
@@ -82,7 +89,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
             {/* Subheadline / Tagline */}
             <p className="text-neutral-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto lg:mx-0">
-              {cms.hero.subheadline}
+              {subheadline}
             </p>
 
             {/* Quick Search Bar */}
@@ -91,9 +98,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 <Search className="w-5 h-5 text-neutral-400 ml-2.5 shrink-0" />
                 <input
                   type="text"
-                  placeholder="Cari cepat DUDI, pimpinan, atau bidang..."
+                  placeholder="Cari cepat DUDI, pimpinan, bidang, kota..."
                   value={quickSearch}
                   onChange={(e) => setQuickSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (filteredQuickDudi.length > 0) {
+                        onSelectDudiForMap(filteredQuickDudi[0]);
+                        setQuickSearch('');
+                        onNavigate('gis-map');
+                      } else {
+                        onNavigate('dudi-catalog');
+                      }
+                    }
+                  }}
                   className="w-full px-3 py-2 text-sm bg-transparent outline-none text-neutral-900 placeholder:text-neutral-400"
                 />
                 {quickSearch && (
@@ -105,7 +123,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   </button>
                 )}
                 <button
-                  onClick={() => onNavigate('dudi-catalog')}
+                  onClick={() => {
+                    if (filteredQuickDudi.length > 0) {
+                      onSelectDudiForMap(filteredQuickDudi[0]);
+                      setQuickSearch('');
+                      onNavigate('gis-map');
+                    } else {
+                      onNavigate('dudi-catalog');
+                    }
+                  }}
                   className="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg transition-colors shrink-0"
                 >
                   Cari
@@ -113,29 +139,45 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               </div>
 
               {/* Quick Dropdown Results */}
-              {filteredQuickDudi.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-neutral-200 divide-y divide-neutral-100 z-30 max-h-60 overflow-y-auto text-left">
-                  {filteredQuickDudi.map((dudi) => (
-                    <div
-                      key={dudi.id}
-                      onClick={() => {
-                        onSelectDudiForMap(dudi);
-                        setQuickSearch('');
-                        onNavigate('gis-map');
-                      }}
-                      className="p-3 hover:bg-red-50/60 cursor-pointer transition-colors flex items-center justify-between gap-3"
-                    >
-                      <div>
-                        <div className="font-bold text-sm text-neutral-900">{dudi.nama_dudi}</div>
-                        <div className="text-xs text-neutral-500 truncate max-w-sm">
-                          {dudi.bidang_pekerjaan} • {dudi.kabupaten}
-                        </div>
-                      </div>
-                      <span className="text-xs font-semibold text-red-600 shrink-0 flex items-center gap-1">
-                        Peta <ArrowRight className="w-3 h-3" />
-                      </span>
+              {quickSearch.trim() && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-neutral-200 divide-y divide-neutral-100 z-30 max-h-72 overflow-y-auto text-left">
+                  <div className="px-3 py-2 bg-neutral-50 text-[11px] font-bold text-neutral-500 flex items-center justify-between">
+                    <span>Hasil Pencarian ({filteredQuickDudi.length} DUDI)</span>
+                    <span>Klik untuk lihat di Peta GIS</span>
+                  </div>
+
+                  {filteredQuickDudi.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-neutral-500">
+                      Tidak ditemukan DUDI yang cocok dengan "{quickSearch}".
                     </div>
-                  ))}
+                  ) : (
+                    filteredQuickDudi.map((dudi) => (
+                      <div
+                        key={dudi.id}
+                        onClick={() => {
+                          onSelectDudiForMap(dudi);
+                          setQuickSearch('');
+                          onNavigate('gis-map');
+                        }}
+                        className="p-3 hover:bg-red-50/60 cursor-pointer transition-colors flex items-center justify-between gap-3"
+                      >
+                        <div>
+                          <div className="font-bold text-sm text-neutral-900 flex items-center gap-1.5">
+                            <span className="w-4 h-4 rounded-full bg-neutral-100 text-neutral-600 text-[10px] flex items-center justify-center font-bold">
+                              {dudi.no}
+                            </span>
+                            <span>{dudi.nama_dudi}</span>
+                          </div>
+                          <div className="text-xs text-neutral-500 truncate max-w-sm mt-0.5">
+                            {dudi.bidang_pekerjaan} • {dudi.kabupaten}
+                          </div>
+                        </div>
+                        <span className="text-xs font-semibold text-red-600 shrink-0 flex items-center gap-1">
+                          Peta <ArrowRight className="w-3 h-3" />
+                        </span>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
             </div>

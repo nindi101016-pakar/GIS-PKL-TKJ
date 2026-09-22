@@ -261,6 +261,7 @@ VALUES
     'tkj',
     '{
         "title": "Profil Kompetensi Keahlian TKJ",
+        "description": "SMK Negeri 1 Songgom menyiapkan lulusan teknisi jaringan komputer yang terampil, berdaya saing industri, dan berakhlak mulia.",
         "subtitle": "SMK Negeri 1 Songgom menyiapkan lulusan teknisi jaringan komputer yang terampil, berdaya saing industri, dan berakhlak mulia.",
         "skills": [
             {
@@ -283,6 +284,36 @@ VALUES
                 "description": "Instalasi sistem operasi, instalasi software berlisensi, perawatan berkala printer dan periferal, serta etika komunikasi teknisi dengan pelanggan.",
                 "icon": "Wrench"
             }
+        ],
+        "competencies": [
+            {
+                "title": "Teknologi Jaringan Berbasis Luas (WAN & Fiber Optik)",
+                "description": "Penguasaan instalasi, splicing serat optik, penarikan kabel FTTH, dan konfigurasi OLT/ONT bersama mitra industri penyedia jasa internet (ISP).",
+                "icon": "Network"
+            },
+            {
+                "title": "Administrasi Infrastruktur Jaringan (MikroTik & Cisco)",
+                "description": "Routing dinamis, bandwidth management, firewall filtering, hotspot gateway, VPN server, dan monitoring performa jaringan telekomunikasi.",
+                "icon": "Cpu"
+            },
+            {
+                "title": "Perakitan PC & Troubleshooting Hardware",
+                "description": "Perakitan komputer desktop, diagnosa kerusakan mainboard, penggantian thermal paste, maintenance power supply, dan pengujian stabilitas hardware.",
+                "icon": "Cpu"
+            },
+            {
+                "title": "Layanan Servis & Penjualan Komputer (Retail DUDI)",
+                "description": "Instalasi sistem operasi, instalasi software berlisensi, perawatan berkala printer dan periferal, serta etika komunikasi teknisi dengan pelanggan.",
+                "icon": "Server"
+            }
+        ],
+        "careerOpportunities": [
+            "Network Administrator & Support Engineer",
+            "Teknisi Hardware & Komputer Spesialis",
+            "Fiber Optic Technician & Field Engineer",
+            "Helpdesk & IT Support Officer",
+            "Wirausaha Toko Komputer & Servis Center",
+            "Teknisi ISP / Wireless Network Provider"
         ]
     }'::jsonb
 ),
@@ -292,6 +323,28 @@ VALUES
         "title": "Manfaat Sistem Pemetaan Bagi Sekolah & Industri",
         "subtitle": "Mewujudkan transparansi informasi penempatan siswa magang serta mempererat sinergi link-and-match antara SMKN 1 Songgom dengan DUDI mitra.",
         "categories": [
+            {
+                "target": "Bagi Siswa & Wali Murid",
+                "points": [
+                    "Mengetahui jarak tempuh dan koordinat pasti lokasi PKL dari tempat tinggal.",
+                    "Melihat bidang pekerjaan teknis yang diajarkan (Jaringan, Servis Komputer, Retail).",
+                    "Memastikan kapasitas kuota penerimaan siswa magang yang tersedia.",
+                    "Akses langsung nomor telepon dan kontak penanggung jawab tempat PKL."
+                ],
+                "icon": "GraduationCap"
+            },
+            {
+                "target": "Bagi DUDI Mitra Industri",
+                "points": [
+                    "Mendapatkan calon tenaga magang yang memiliki kualifikasi sesuai kebutuhan operasional teknis.",
+                    "Promosi profil usaha dan reputasi industri sebagai mitra resmi vokasi SMK Negeri 1 Songgom.",
+                    "Kemudahan komunikasi langsung dengan pihak BKK / Hubin sekolah.",
+                    "Membantu menyaring talenta terbaik untuk direkrut menjadi karyawan tetap pasca kelulusan."
+                ],
+                "icon": "Briefcase"
+            }
+        ],
+        "benefits": [
             {
                 "target": "Bagi Siswa & Wali Murid",
                 "points": [
