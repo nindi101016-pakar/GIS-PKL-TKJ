@@ -172,8 +172,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const copySqlToClipboard = () => {
-    const sqlText = `-- Jalankan pada Supabase SQL Editor
--- 1. Buat Tabel Akun Admin Pengelola
+    const sqlText = `-- ============================================================================
+-- SKEMA SUPABASE LENGKAP (VERSI FINAL - SMKN 1 SONGGOM)
+-- Salin dan jalankan di SQL Editor Supabase
+-- ============================================================================
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- 1. TABEL ADMIN USERS
 CREATE TABLE IF NOT EXISTS public.admin_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -184,23 +191,16 @@ CREATE TABLE IF NOT EXISTS public.admin_users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     last_login TIMESTAMP WITH TIME ZONE
 );
-ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public Read Admin Users" ON public.admin_users FOR SELECT USING (true);
-CREATE POLICY "Admin Full Admin Users" ON public.admin_users FOR ALL USING (true);
+CREATE INDEX IF NOT EXISTS idx_admin_users_email ON public.admin_users(email);
 
--- Insert Akun Admin Default
-INSERT INTO public.admin_users (email, password, full_name, role)
-VALUES ('admin@smkn1songgom.sch.id', 'admin123', 'Administrator GIS SMKN 1 Songgom', 'superadmin')
-ON CONFLICT (email) DO NOTHING;
-
--- 2. Buat Tabel Tempat PKL / DUDI
+-- 2. TABEL TEMPAT PKL / DUDI
 CREATE TABLE IF NOT EXISTS public.dudi (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     no INT NOT NULL,
     nama_dudi VARCHAR(255) NOT NULL,
     maksimal_siswa INT DEFAULT 4,
     pimpinan VARCHAR(255),
-    jenis_dudi VARCHAR(100),
+    jenis_dudi VARCHAR(100) DEFAULT 'Mandiri',
     bidang_pekerjaan TEXT,
     alamat TEXT NOT NULL,
     kabupaten VARCHAR(100) DEFAULT 'Kab. Brebes',
@@ -212,9 +212,54 @@ CREATE TABLE IF NOT EXISTS public.dudi (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_dudi_no ON public.dudi(no);
+CREATE INDEX IF NOT EXISTS idx_dudi_kabupaten ON public.dudi(kabupaten);
+
+-- 3. TABEL CMS CONTENT
+CREATE TABLE IF NOT EXISTS public.cms_content (
+    key VARCHAR(100) PRIMARY KEY,
+    value JSONB NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 4. TABEL GALERI
+CREATE TABLE IF NOT EXISTS public.gallery (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(100) DEFAULT 'Instalasi Jaringan',
+    image_url TEXT NOT NULL,
+    description TEXT,
+    date VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 5. ENABLE ROW LEVEL SECURITY
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dudi ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cms_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
+
+-- 6. POLICIES (PUBLIC READ & FULL ACCESS)
+DROP POLICY IF EXISTS "Public Read Admin Users" ON public.admin_users;
+CREATE POLICY "Public Read Admin Users" ON public.admin_users FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Full Access Admin Users" ON public.admin_users FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Public Read DUDI" ON public.dudi;
 CREATE POLICY "Public Read DUDI" ON public.dudi FOR SELECT USING (true);
-CREATE POLICY "Admin Full DUDI" ON public.dudi FOR ALL USING (true);
+DROP POLICY IF EXISTS "Full Access DUDI" ON public.dudi FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Public Read CMS" ON public.cms_content;
+CREATE POLICY "Public Read CMS" ON public.cms_content FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Full Access CMS" ON public.cms_content FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Public Read Gallery" ON public.gallery;
+CREATE POLICY "Public Read Gallery" ON public.gallery FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Full Access Gallery" ON public.gallery FOR ALL USING (true);
+
+-- 7. SEED DEFAULT SUPERADMIN
+INSERT INTO public.admin_users (email, password, full_name, role, is_active)
+VALUES ('admin@smkn1songgom.sch.id', 'admin123', 'Administrator GIS SMKN 1 Songgom', 'superadmin', true)
+ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role;
 `;
     navigator.clipboard.writeText(sqlText);
     setIsCopiedSql(true);
