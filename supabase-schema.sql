@@ -1,18 +1,20 @@
 -- ============================================================================
--- SKEMA BASIS DATA SUPABASE RESMI (VERSI TERBARU & TERTATA RAPI)
+-- SKEMA BASIS DATA SUPABASE RESMI (VERSI TERBARU & BEBAS ERROR)
 -- SISTEM INFORMASI GEOGRAFIS (GIS) PEMETAAN TEMPAT PKL TKJ
 -- SMK NEGERI 1 SONGGOM - BREBES DAN SEKITARNYA
 -- ============================================================================
 -- 4 TABEL UTAMA PENGATUR ISIAN APLIKASI:
--- 1. public.admin       : Data pengguna administrator sistem
--- 2. public.dudi        : Data tempat PKL / Mitra Industri Vokasi TKJ
--- 3. public.pengaturan  : Data konfigurasi teks hero, kejuruan TKJ, & kontak
+-- 1. public.admin       : Data akun administrator sistem
+-- 2. public.dudi        : Data 32 tempat PKL (id TEXT PRIMARY KEY sinkron)
+-- 3. public.pengaturan  : Data isian teks hero, kejuruan TKJ, & kontak
 -- 4. public.galeri      : Data dokumentasi foto kegiatan praktik siswa
 --
--- DILENGKAPI:
--- Registrasi langsung ke Supabase Authentication (auth.users) agar akun
--- admin resmi Pak Aryanoe (pakaryanoe@gmail.com) langsung terdaftar di menu
--- "Authentication -> Users" dashboard Supabase Anda!
+-- FITUR KHUSUS:
+-- 1. Otomatis membersihkan tabel lama bertipe UUID (DROP CASCADE) agar tidak
+--    terjadi konflik "invalid input syntax for type uuid".
+-- 2. Mendaftarkan akun superadmin resmi Pak Aryanoe (pakaryanoe@gmail.com)
+--    ke Supabase Authentication (auth.users) sehingga langsung aktif di menu
+--    "Authentication -> Users" dashboard Supabase Anda.
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
@@ -22,93 +24,115 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ----------------------------------------------------------------------------
--- 2. PENDAFTARAN RESMI KE SUPABASE AUTHENTICATION (auth.users & auth.identities)
--- Kredensial Admin Utama:
+-- 2. BERSIHKAN TABEL LAMA DENGAN AMAN
+-- Menghindari error "invalid input syntax for type uuid" karena tabel lama
+-- di Supabase masih menggunakan kolom id UUID dari versi skema terdahulu.
+-- ----------------------------------------------------------------------------
+DROP TABLE IF EXISTS public.dudi CASCADE;
+DROP TABLE IF EXISTS public.admin CASCADE;
+DROP TABLE IF EXISTS public.pengaturan CASCADE;
+DROP TABLE IF EXISTS public.galeri CASCADE;
+-- Bersihkan juga nama tabel skema lama jika pernah dibuat
+DROP TABLE IF EXISTS public.admin_users CASCADE;
+DROP TABLE IF EXISTS public.cms_content CASCADE;
+DROP TABLE IF EXISTS public.gallery CASCADE;
+
+-- ----------------------------------------------------------------------------
+-- 3. PENDAFTARAN RESMI KE SUPABASE AUTHENTICATION (auth.users & auth.identities)
+-- Akun Admin Utama:
 -- Email    : pakaryanoe@gmail.com
 -- Password : @PTKsonggom1
 -- ----------------------------------------------------------------------------
 DO $$
 DECLARE
+    existing_user_id UUID;
     superadmin_uid UUID := 'a0000000-0000-0000-0000-000000000001'::uuid;
 BEGIN
-    -- Masukkan ke auth.users jika belum ada atau update passwordnya
-    INSERT INTO auth.users (
-        instance_id,
-        id,
-        aud,
-        role,
-        email,
-        encrypted_password,
-        email_confirmed_at,
-        recovery_sent_at,
-        last_sign_in_at,
-        raw_app_meta_data,
-        raw_user_meta_data,
-        created_at,
-        updated_at,
-        confirmation_token,
-        email_change,
-        email_change_token_new,
-        recovery_token
-    )
-    VALUES (
-        '00000000-0000-0000-0000-000000000000',
-        superadmin_uid,
-        'authenticated',
-        'authenticated',
-        'pakaryanoe@gmail.com',
-        crypt('@PTKsonggom1', gen_salt('bf')),
-        timezone('utc'::text, now()),
-        timezone('utc'::text, now()),
-        timezone('utc'::text, now()),
-        '{"provider":"email","providers":["email"]}'::jsonb,
-        '{"full_name":"Pak Aryanoe (Administrator GIS SMKN 1 Songgom)","role":"superadmin"}'::jsonb,
-        timezone('utc'::text, now()),
-        timezone('utc'::text, now()),
-        '',
-        '',
-        '',
-        ''
-    )
-    ON CONFLICT (id) DO UPDATE
-    SET encrypted_password = crypt('@PTKsonggom1', gen_salt('bf')),
-        email = 'pakaryanoe@gmail.com',
-        email_confirmed_at = timezone('utc'::text, now()),
-        updated_at = timezone('utc'::text, now()),
-        raw_user_meta_data = '{"full_name":"Pak Aryanoe (Administrator GIS SMKN 1 Songgom)","role":"superadmin"}'::jsonb;
+    -- Periksa apakah email sudah ada di auth.users Supabase
+    SELECT id INTO existing_user_id FROM auth.users WHERE lower(email) = 'pakaryanoe@gmail.com' LIMIT 1;
 
-    -- Tambahkan ke auth.identities agar provider email dikenali oleh Supabase GoTrue
-    INSERT INTO auth.identities (
-        id,
-        user_id,
-        identity_data,
-        provider,
-        last_sign_in_at,
-        created_at,
-        updated_at
-    )
-    VALUES (
-        'a0000000-0000-0000-0000-000000000001',
-        superadmin_uid,
-        jsonb_build_object('sub', superadmin_uid::text, 'email', 'pakaryanoe@gmail.com'),
-        'email',
-        timezone('utc'::text, now()),
-        timezone('utc'::text, now()),
-        timezone('utc'::text, now())
-    )
-    ON CONFLICT (provider, id) DO UPDATE
-    SET identity_data = jsonb_build_object('sub', superadmin_uid::text, 'email', 'pakaryanoe@gmail.com'),
-        updated_at = timezone('utc'::text, now());
+    IF existing_user_id IS NOT NULL THEN
+        -- Jika sudah ada, update password dan konfirmasi email secara instan
+        UPDATE auth.users
+        SET encrypted_password = crypt('@PTKsonggom1', gen_salt('bf')),
+            email_confirmed_at = COALESCE(email_confirmed_at, timezone('utc'::text, now())),
+            updated_at = timezone('utc'::text, now()),
+            raw_app_meta_data = '{"provider":"email","providers":["email"]}'::jsonb,
+            raw_user_meta_data = '{"full_name":"Pak Aryanoe (Administrator GIS SMKN 1 Songgom)","role":"superadmin"}'::jsonb
+        WHERE id = existing_user_id;
+
+        UPDATE auth.identities
+        SET updated_at = timezone('utc'::text, now())
+        WHERE user_id = existing_user_id;
+    ELSE
+        -- Jika belum ada, daftarkan akun baru ke auth.users
+        INSERT INTO auth.users (
+            instance_id,
+            id,
+            aud,
+            role,
+            email,
+            encrypted_password,
+            email_confirmed_at,
+            recovery_sent_at,
+            last_sign_in_at,
+            raw_app_meta_data,
+            raw_user_meta_data,
+            created_at,
+            updated_at,
+            confirmation_token,
+            email_change,
+            email_change_token_new,
+            recovery_token
+        )
+        VALUES (
+            '00000000-0000-0000-0000-000000000000',
+            superadmin_uid,
+            'authenticated',
+            'authenticated',
+            'pakaryanoe@gmail.com',
+            crypt('@PTKsonggom1', gen_salt('bf')),
+            timezone('utc'::text, now()),
+            timezone('utc'::text, now()),
+            timezone('utc'::text, now()),
+            '{"provider":"email","providers":["email"]}'::jsonb,
+            '{"full_name":"Pak Aryanoe (Administrator GIS SMKN 1 Songgom)","role":"superadmin"}'::jsonb,
+            timezone('utc'::text, now()),
+            timezone('utc'::text, now()),
+            '',
+            '',
+            '',
+            ''
+        );
+
+        INSERT INTO auth.identities (
+            id,
+            user_id,
+            identity_data,
+            provider,
+            last_sign_in_at,
+            created_at,
+            updated_at
+        )
+        VALUES (
+            superadmin_uid::text,
+            superadmin_uid,
+            jsonb_build_object('sub', superadmin_uid::text, 'email', 'pakaryanoe@gmail.com'),
+            'email',
+            timezone('utc'::text, now()),
+            timezone('utc'::text, now()),
+            timezone('utc'::text, now())
+        );
+    END IF;
 EXCEPTION
     WHEN OTHERS THEN
-        RAISE NOTICE 'Notice on auth.users insert: %', SQLERRM;
+        RAISE NOTICE 'Catatan konfigurasi auth.users: %', SQLERRM;
 END $$;
 
 -- ----------------------------------------------------------------------------
--- 3. TABEL 1: ADMIN (public.admin)
--- Menyimpan informasi hak akses dan profil administrator sistem
+-- 4. TABEL 1: ADMIN (public.admin)
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.admin (
+CREATE TABLE public.admin (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
@@ -119,15 +143,15 @@ CREATE TABLE IF NOT EXISTS public.admin (
     last_login TIMESTAMP WITH TIME ZONE
 );
 
-CREATE INDEX IF NOT EXISTS idx_admin_email ON public.admin(email);
+CREATE INDEX idx_admin_email ON public.admin(email);
 
 -- ----------------------------------------------------------------------------
--- 4. TABEL 2: DUDI / TEMPAT PKL (public.dudi)
--- Menggunakan ID TEXT PRIMARY KEY yang sinkron ('dudi-1', 'dudi-2', dst)
--- agar proses update nama DUDI menggantikan data lama secara instan dan rapi.
+-- 5. TABEL 2: DUDI / TEMPAT PKL (public.dudi)
+-- Menggunakan id TEXT PRIMARY KEY yang fleksibel dan sinkron (misal 'dudi-1')
+-- sehingga update data nama DUDI menggantikan nama lama secara langsung.
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.dudi (
-    id TEXT PRIMARY KEY,
+CREATE TABLE public.dudi (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
     no INT NOT NULL,
     nama_dudi VARCHAR(255) NOT NULL,
     maksimal_siswa INT DEFAULT 4,
@@ -145,26 +169,24 @@ CREATE TABLE IF NOT EXISTS public.dudi (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_dudi_no ON public.dudi(no);
-CREATE INDEX IF NOT EXISTS idx_dudi_kabupaten ON public.dudi(kabupaten);
-CREATE INDEX IF NOT EXISTS idx_dudi_nama ON public.dudi(nama_dudi);
+CREATE INDEX idx_dudi_no ON public.dudi(no);
+CREATE INDEX idx_dudi_kabupaten ON public.dudi(kabupaten);
+CREATE INDEX idx_dudi_nama ON public.dudi(nama_dudi);
 
 -- ----------------------------------------------------------------------------
--- 5. TABEL 3: PENGATURAN KONTEN APLIKASI (public.pengaturan)
--- Digunakan untuk mengatur isian teks Hero, Jurusan TKJ, Manfaat, dan Kontak
+-- 6. TABEL 3: PENGATURAN KONTEN APLIKASI (public.pengaturan)
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.pengaturan (
+CREATE TABLE public.pengaturan (
     kunci VARCHAR(100) PRIMARY KEY,
     nilai JSONB NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- ----------------------------------------------------------------------------
--- 6. TABEL 4: GALERI DOKUMENTASI (public.galeri)
--- Menyimpan foto dokumentasi peralatan dan kegiatan praktik siswa
+-- 7. TABEL 4: GALERI DOKUMENTASI (public.galeri)
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.galeri (
-    id TEXT PRIMARY KEY,
+CREATE TABLE public.galeri (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
     judul VARCHAR(255) NOT NULL,
     kategori VARCHAR(100) DEFAULT 'Instalasi Jaringan',
     url_gambar TEXT NOT NULL,
@@ -173,10 +195,10 @@ CREATE TABLE IF NOT EXISTS public.galeri (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_galeri_kategori ON public.galeri(kategori);
+CREATE INDEX idx_galeri_kategori ON public.galeri(kategori);
 
 -- ----------------------------------------------------------------------------
--- 7. TRIGGER PEMBARUAN OTOMATIS KOLOM updated_at
+-- 8. TRIGGER PEMBARUAN OTOMATIS KOLOM updated_at
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER AS $$
@@ -186,41 +208,31 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trigger_dudi_updated_at ON public.dudi;
 CREATE TRIGGER trigger_dudi_updated_at
     BEFORE UPDATE ON public.dudi
     FOR EACH ROW
     EXECUTE FUNCTION public.handle_updated_at();
 
-DROP TRIGGER IF EXISTS trigger_pengaturan_updated_at ON public.pengaturan;
 CREATE TRIGGER trigger_pengaturan_updated_at
     BEFORE UPDATE ON public.pengaturan
     FOR EACH ROW
     EXECUTE FUNCTION public.handle_updated_at();
 
 -- ----------------------------------------------------------------------------
--- 8. ROW LEVEL SECURITY (RLS) & KEBIJAKAN AKSES LENGKAP
--- Memberikan hak akses penuh agar sistem web dapat membaca dan mengelola data
+-- 9. ROW LEVEL SECURITY (RLS) & KEBIJAKAN AKSES
 -- ----------------------------------------------------------------------------
 ALTER TABLE public.admin ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dudi ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pengaturan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.galeri ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow All Admin" ON public.admin;
 CREATE POLICY "Allow All Admin" ON public.admin FOR ALL USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Allow All Dudi" ON public.dudi;
 CREATE POLICY "Allow All Dudi" ON public.dudi FOR ALL USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Allow All Pengaturan" ON public.pengaturan;
 CREATE POLICY "Allow All Pengaturan" ON public.pengaturan FOR ALL USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Allow All Galeri" ON public.galeri;
 CREATE POLICY "Allow All Galeri" ON public.galeri FOR ALL USING (true) WITH CHECK (true);
 
 -- ----------------------------------------------------------------------------
--- 9. SEED DATA TABEL admin: AKUN SUPERADMIN RESMI
+-- 10. SEED DATA TABEL admin
 -- ----------------------------------------------------------------------------
 INSERT INTO public.admin (email, password, full_name, role, is_active)
 VALUES (
@@ -237,7 +249,7 @@ SET password = EXCLUDED.password,
     is_active = EXCLUDED.is_active;
 
 -- ----------------------------------------------------------------------------
--- 10. SEED DATA TABEL pengaturan: ISIAN KONTEN APLIKASI
+-- 11. SEED DATA TABEL pengaturan
 -- ----------------------------------------------------------------------------
 INSERT INTO public.pengaturan (kunci, nilai)
 VALUES
@@ -324,8 +336,7 @@ ON CONFLICT (kunci) DO UPDATE
 SET nilai = EXCLUDED.nilai, updated_at = timezone('utc'::text, now());
 
 -- ----------------------------------------------------------------------------
--- 11. SEED DATA TABEL galeri: DOKUMENTASI TEKNIS & PERALATAN
--- Dokumentasi teknis hardware dan instalasi jaringan tanpa menampilkan wajah
+-- 12. SEED DATA TABEL galeri
 -- ----------------------------------------------------------------------------
 INSERT INTO public.galeri (id, judul, kategori, url_gambar, deskripsi, tanggal)
 VALUES
@@ -385,8 +396,7 @@ SET judul = EXCLUDED.judul,
     tanggal = EXCLUDED.tanggal;
 
 -- ----------------------------------------------------------------------------
--- 12. SEED DATA TABEL dudi: 32 TEMPAT PKL RESMI SMK NEGERI 1 SONGGOM
--- Menggunakan ID eksplisit dudi-1 sampai dudi-32 yang sinkron dengan aplikasi
+-- 13. SEED DATA TABEL dudi: 32 TEMPAT PKL RESMI (id TEXT PRIMARY KEY)
 -- ----------------------------------------------------------------------------
 INSERT INTO public.dudi (id, no, nama_dudi, maksimal_siswa, pimpinan, jenis_dudi, bidang_pekerjaan, alamat, kabupaten, latitude, longitude, no_hp, jaminan, nominal)
 VALUES
