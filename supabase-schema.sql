@@ -41,21 +41,42 @@ CREATE TABLE IF NOT EXISTS public.gallery (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 4. Enable Row Level Security (RLS)
+-- 4. Buat Tabel Akun Pengguna Admin (Admin Users)
+CREATE TABLE IF NOT EXISTS public.admin_users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'admin',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    last_login TIMESTAMP WITH TIME ZONE
+);
+
+-- 5. Enable Row Level Security (RLS)
 ALTER TABLE public.dudi ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cms_content ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 
--- 5. Policies: Izinkan Read untuk Publik & Full CRUD untuk Pengguna Terautentikasi/Admin
+-- 6. Policies: Izinkan Read untuk Publik & Full CRUD untuk Pengguna Terautentikasi/Admin
 CREATE POLICY "Public Read DUDI" ON public.dudi FOR SELECT USING (true);
 CREATE POLICY "Public Read CMS" ON public.cms_content FOR SELECT USING (true);
 CREATE POLICY "Public Read Gallery" ON public.gallery FOR SELECT USING (true);
+CREATE POLICY "Public Read Admin Users" ON public.admin_users FOR SELECT USING (true);
 
 CREATE POLICY "Admin Full DUDI" ON public.dudi FOR ALL USING (true);
 CREATE POLICY "Admin Full CMS" ON public.cms_content FOR ALL USING (true);
 CREATE POLICY "Admin Full Gallery" ON public.gallery FOR ALL USING (true);
+CREATE POLICY "Admin Full Admin Users" ON public.admin_users FOR ALL USING (true);
 
--- 6. Seed Data: 32 Data DUDI Resmi SMK Negeri 1 Songgom
+-- 7. Seed Akun Default Admin untuk Login Dashboard
+INSERT INTO public.admin_users (email, password, full_name, role)
+VALUES 
+('admin@smkn1songgom.sch.id', 'admin123', 'Administrator GIS SMKN 1 Songgom', 'superadmin')
+ON CONFLICT (email) DO NOTHING;
+
+-- 8. Seed Data: 32 Data DUDI Resmi SMK Negeri 1 Songgom
 INSERT INTO public.dudi (no, nama_dudi, maksimal_siswa, pimpinan, jenis_dudi, bidang_pekerjaan, alamat, kabupaten, latitude, longitude, no_hp, jaminan, nominal)
 VALUES
 (1, 'ABS Komputer', 4, 'Arief Bayu S.', 'Mandiri', 'Teknisi / Mekanik, Penjualan', 'Jl. Projosumarto 01 Gg. Balok Desa Sutapranan, Kec. Dukuhturi, Kab. Tegal', 'Kab. Tegal', -6.903560, 109.136150, '', '', 0),

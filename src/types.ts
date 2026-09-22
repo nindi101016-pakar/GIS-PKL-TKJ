@@ -71,7 +71,7 @@ export interface CMSContent {
 export interface GalleryItem {
   id: string;
   title: string;
-  category: 'Kegiatan PKL' | 'Monitoring Guru' | 'Instalasi Jaringan' | 'Perakitan & Servis';
+  category: 'Kegiatan PKL' | 'Monitoring Guru' | 'Instalasi Jaringan' | 'Perakitan & Servis' | 'Pengujian Alat' | string;
   imageUrl: string;
   description: string;
   date: string;

@@ -173,6 +173,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const copySqlToClipboard = () => {
     const sqlText = `-- Jalankan pada Supabase SQL Editor
+-- 1. Buat Tabel Akun Admin Pengelola
+CREATE TABLE IF NOT EXISTS public.admin_users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'admin',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    last_login TIMESTAMP WITH TIME ZONE
+);
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public Read Admin Users" ON public.admin_users FOR SELECT USING (true);
+CREATE POLICY "Admin Full Admin Users" ON public.admin_users FOR ALL USING (true);
+
+-- Insert Akun Admin Default
+INSERT INTO public.admin_users (email, password, full_name, role)
+VALUES ('admin@smkn1songgom.sch.id', 'admin123', 'Administrator GIS SMKN 1 Songgom', 'superadmin')
+ON CONFLICT (email) DO NOTHING;
+
+-- 2. Buat Tabel Tempat PKL / DUDI
 CREATE TABLE IF NOT EXISTS public.dudi (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     no INT NOT NULL,
@@ -216,7 +237,7 @@ CREATE POLICY "Admin Full DUDI" ON public.dudi FOR ALL USING (true);
 
             <div className="hidden sm:block border-l border-neutral-700 pl-4">
               <h1 className="font-black text-sm tracking-tight text-white flex items-center gap-2">
-                <span>CMS ADMINISTRATOR</span>
+                <span>PANEL ADMINISTRATOR</span>
                 <span className="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded font-extrabold">
                   SMKN 1 SONGGOM
                 </span>

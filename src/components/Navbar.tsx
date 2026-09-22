@@ -142,7 +142,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>{isAdminLoggedIn ? 'Panel CMS Admin' : 'Admin CMS'}</span>
+              <span>{isAdminLoggedIn ? 'Panel Admin' : 'Admin'}</span>
               {isAdminLoggedIn && (
                 <span className="w-2 h-2 rounded-full bg-emerald-200 animate-pulse" />
               )}

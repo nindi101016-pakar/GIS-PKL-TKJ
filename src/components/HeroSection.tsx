@@ -67,7 +67,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Main Headline */}
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-neutral-900 tracking-tight leading-[1.15]">
               {cms.hero.headline.split(' ').map((word, i) => {
-                const isHighlight = ['PKL', 'Teknik', 'Komputer', '&', 'Jaringan'].includes(word);
+                const cleanWord = word.replace(/[^a-zA-Z0-9&]/g, '');
+                const isHighlight = ['PKL', 'Teknik', 'Komputer', '&', 'Jaringan', 'Brebes'].includes(cleanWord);
                 return (
                   <span
                     key={i}
@@ -163,10 +164,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 id="btn-hero-open-admin"
                 onClick={onOpenAdmin}
                 className="flex items-center gap-1.5 text-xs text-neutral-600 hover:text-red-700 px-3 py-2 rounded-lg hover:bg-red-50 border border-neutral-200/80 transition-colors"
-                title="Kelola Data lewat CMS"
+                title="Kelola Data lewat Admin"
               >
                 <ShieldCheck className="w-4 h-4 text-red-600" />
-                <span>Admin CMS</span>
+                <span>Admin</span>
               </button>
             </div>
           </div>

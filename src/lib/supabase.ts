@@ -23,18 +23,29 @@ const LS_CMS_KEY = 'smkn1songgom_cms_content_v1';
 const LS_GALLERY_KEY = 'smkn1songgom_gallery_v1';
 const LS_ADMIN_KEY = 'smkn1songgom_admin_auth_v1';
 
-// Initialize localStorage with initial data if empty
+// Initialize localStorage with initial data if empty or outdated
 function initLocalStorage() {
   if (typeof window === 'undefined') return;
   if (!localStorage.getItem(LS_DUDI_KEY)) {
     localStorage.setItem(LS_DUDI_KEY, JSON.stringify(INITIAL_DUDI_LIST));
   }
-  if (!localStorage.getItem(LS_CMS_KEY)) {
+  const storedCms = localStorage.getItem(LS_CMS_KEY);
+  if (!storedCms) {
     localStorage.setItem(LS_CMS_KEY, JSON.stringify(DEFAULT_CMS_CONTENT));
+  } else {
+    try {
+      const parsed = JSON.parse(storedCms);
+      if (parsed.hero && parsed.hero.headline && parsed.hero.headline.includes('Pemetaan Cerdas')) {
+        parsed.hero.headline = DEFAULT_CMS_CONTENT.hero.headline;
+        localStorage.setItem(LS_CMS_KEY, JSON.stringify(parsed));
+      }
+    } catch {
+      localStorage.setItem(LS_CMS_KEY, JSON.stringify(DEFAULT_CMS_CONTENT));
+    }
   }
-  if (!localStorage.getItem(LS_GALLERY_KEY)) {
-    localStorage.setItem(LS_GALLERY_KEY, JSON.stringify(INITIAL_GALLERY));
-  }
+
+  // Always refresh gallery with non-face, technical product photos
+  localStorage.setItem(LS_GALLERY_KEY, JSON.stringify(INITIAL_GALLERY));
 }
 
 initLocalStorage();
@@ -346,5 +357,50 @@ export const dataService = {
     } else {
       localStorage.removeItem(LS_ADMIN_KEY);
     }
+  },
+
+  async verifyAdminLogin(email: string, pass: string): Promise<boolean> {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPass = pass.trim();
+
+    // 1. Try checking admin_users table in Supabase if client configured
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('admin_users')
+          .select('*')
+          .or(`email.eq.${cleanEmail},email.eq.${cleanEmail === 'admin' ? 'admin@smkn1songgom.sch.id' : cleanEmail}`)
+          .eq('password', cleanPass)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (data && !error) {
+          this.setAdminLoggedIn(true);
+          try {
+            await supabase
+              .from('admin_users')
+              .update({ last_login: new Date().toISOString() })
+              .eq('id', data.id);
+          } catch {
+            // non-blocking
+          }
+          return true;
+        }
+      } catch (err) {
+        console.warn('Supabase admin_users check error, trying fallback:', err);
+      }
+    }
+
+    // 2. Default credentials fallback (as specified in schema seed)
+    const isDefault =
+      (cleanEmail === 'admin@smkn1songgom.sch.id' || cleanEmail === 'admin') &&
+      cleanPass === 'admin123';
+
+    if (isDefault) {
+      this.setAdminLoggedIn(true);
+      return true;
+    }
+
+    return false;
   },
 };

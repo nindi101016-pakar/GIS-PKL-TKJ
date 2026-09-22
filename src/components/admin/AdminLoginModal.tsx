@@ -8,6 +8,7 @@ import {
   KeyRound,
   CheckCircle,
 } from 'lucide-react';
+import { dataService } from '../../lib/supabase';
 
 interface AdminLoginModalProps {
   isOpen: boolean;
@@ -27,19 +28,14 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      // Admin verification
-      if (
-        (email.trim().toLowerCase() === 'admin@smkn1songgom.sch.id' ||
-          email.trim().toLowerCase() === 'admin') &&
-        password.trim() === 'admin123'
-      ) {
+    try {
+      const isValid = await dataService.verifyAdminLogin(email, password);
+      if (isValid) {
         onLoginSuccess();
         onClose();
       } else {
@@ -47,7 +43,11 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
           'Email atau password admin tidak cocok. Gunakan kredensial default yang tertera di bawah.'
         );
       }
-    }, 600);
+    } catch {
+      setErrorMessage('Terjadi kesalahan saat memverifikasi akun admin.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -67,7 +67,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
             <Lock className="w-6 h-6 text-white" />
           </div>
 
-          <h3 className="text-xl font-black tracking-tight">Login CMS Administrator</h3>
+          <h3 className="text-xl font-black tracking-tight">Login Admin</h3>
           <p className="text-xs text-red-100 mt-1">
             Panel Pengelolaan Data GIS & Tempat PKL SMKN 1 Songgom
           </p>
@@ -121,7 +121,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
               className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-extrabold text-xs shadow-md shadow-red-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>{isLoading ? 'Memverifikasi...' : 'Masuk ke Dashboard CMS'}</span>
+              <span>{isLoading ? 'Memverifikasi...' : 'Masuk ke Dashboard Admin'}</span>
             </button>
           </form>
 

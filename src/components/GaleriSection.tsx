@@ -19,10 +19,9 @@ export const GaleriSection: React.FC<GaleriSectionProps> = ({ galleryItems }) =>
 
   const categories = [
     'Semua',
-    'Kegiatan PKL',
-    'Monitoring Guru',
     'Instalasi Jaringan',
     'Perakitan & Servis',
+    'Pengujian Alat',
   ];
 
   const filteredItems =
