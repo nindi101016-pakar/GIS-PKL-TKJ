@@ -1,0 +1,6 @@
+{
+  "name": "GIS Mapping PKL TKJ SMKN 1 Songgom",
+  "description": "Sistem Informasi Geografis (GIS) pemetaan tempat Praktik Kerja Lapangan (PKL) Jurusan Teknik Komputer dan Jaringan SMK Negeri 1 Songgom berbasis CMS.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
