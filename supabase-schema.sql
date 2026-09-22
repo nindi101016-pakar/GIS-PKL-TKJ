@@ -120,46 +120,47 @@ ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
 
 -- Kebijakan untuk Tabel admin_users
 DROP POLICY IF EXISTS "Public Read Admin Users" ON public.admin_users;
-CREATE POLICY "Public Read Admin Users" ON public.admin_users FOR SELECT USING (true);
-
 DROP POLICY IF EXISTS "Full Access Admin Users" ON public.admin_users;
-CREATE POLICY "Full Access Admin Users" ON public.admin_users FOR ALL USING (true);
+DROP POLICY IF EXISTS "Allow All Admin Users" ON public.admin_users;
+CREATE POLICY "Allow All Admin Users" ON public.admin_users FOR ALL USING (true) WITH CHECK (true);
 
 -- Kebijakan untuk Tabel dudi
 DROP POLICY IF EXISTS "Public Read DUDI" ON public.dudi;
-CREATE POLICY "Public Read DUDI" ON public.dudi FOR SELECT USING (true);
-
 DROP POLICY IF EXISTS "Full Access DUDI" ON public.dudi;
-CREATE POLICY "Full Access DUDI" ON public.dudi FOR ALL USING (true);
+DROP POLICY IF EXISTS "Allow All DUDI" ON public.dudi;
+CREATE POLICY "Allow All DUDI" ON public.dudi FOR ALL USING (true) WITH CHECK (true);
 
 -- Kebijakan untuk Tabel cms_content
 DROP POLICY IF EXISTS "Public Read CMS" ON public.cms_content;
-CREATE POLICY "Public Read CMS" ON public.cms_content FOR SELECT USING (true);
-
 DROP POLICY IF EXISTS "Full Access CMS" ON public.cms_content;
-CREATE POLICY "Full Access CMS" ON public.cms_content FOR ALL USING (true);
+DROP POLICY IF EXISTS "Allow All CMS" ON public.cms_content;
+CREATE POLICY "Allow All CMS" ON public.cms_content FOR ALL USING (true) WITH CHECK (true);
 
 -- Kebijakan untuk Tabel gallery
 DROP POLICY IF EXISTS "Public Read Gallery" ON public.gallery;
-CREATE POLICY "Public Read Gallery" ON public.gallery FOR SELECT USING (true);
-
 DROP POLICY IF EXISTS "Full Access Gallery" ON public.gallery;
-CREATE POLICY "Full Access Gallery" ON public.gallery FOR ALL USING (true);
+DROP POLICY IF EXISTS "Allow All Gallery" ON public.gallery;
+CREATE POLICY "Allow All Gallery" ON public.gallery FOR ALL USING (true) WITH CHECK (true);
 
 -- ----------------------------------------------------------------------------
 -- 8. SEED DATA: AKUN PENGELOLA ADMINISTRATOR
--- Kredensial default: email admin@smkn1songgom.sch.id / password admin123
+-- Kredensial Admin Utama:
+-- Email    : pakaryanoe@gmail.com
+-- Password : @PTKsonggom1
 -- ----------------------------------------------------------------------------
 INSERT INTO public.admin_users (email, password, full_name, role, is_active)
 VALUES (
-    'admin@smkn1songgom.sch.id',
-    'admin123',
-    'Administrator GIS SMKN 1 Songgom',
+    'pakaryanoe@gmail.com',
+    '@PTKsonggom1',
+    'Pak Aryanoe (Administrator GIS SMKN 1 Songgom)',
     'superadmin',
     true
 )
 ON CONFLICT (email) DO UPDATE 
-SET full_name = EXCLUDED.full_name, role = EXCLUDED.role, is_active = EXCLUDED.is_active;
+SET password = EXCLUDED.password,
+    full_name = EXCLUDED.full_name,
+    role = EXCLUDED.role,
+    is_active = EXCLUDED.is_active;
 
 -- ----------------------------------------------------------------------------
 -- 9. SEED DATA: KONTEN UTAMA CMS (cms_content)

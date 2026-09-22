@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   AlertCircle,
   KeyRound,
-  CheckCircle,
 } from 'lucide-react';
 import { dataService } from '../../lib/supabase';
 
@@ -21,8 +20,8 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   onClose,
   onLoginSuccess,
 }) => {
-  const [email, setEmail] = useState('admin@smkn1songgom.sch.id');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -40,7 +39,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
         onClose();
       } else {
         setErrorMessage(
-          'Email atau password admin tidak cocok. Gunakan kredensial default yang tertera di bawah.'
+          'Email atau kata sandi admin tidak valid. Silakan periksa kembali.'
         );
       }
     } catch {
@@ -92,6 +91,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 <input
                   type="text"
                   required
+                  placeholder="Masukkan email admin"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-neutral-300 bg-neutral-50 focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none text-xs"
@@ -108,6 +108,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 <input
                   type="password"
                   required
+                  placeholder="Masukkan kata sandi"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-neutral-300 bg-neutral-50 focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none text-xs"
@@ -124,20 +125,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
               <span>{isLoading ? 'Memverifikasi...' : 'Masuk ke Dashboard Admin'}</span>
             </button>
           </form>
-
-          {/* Preset Credentials Helper */}
-          <div className="mt-5 p-3 rounded-xl bg-neutral-50 border border-neutral-200 text-[11px] text-neutral-600 space-y-1">
-            <div className="font-bold text-neutral-800 flex items-center gap-1">
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Akun Default Admin Terdaftar:</span>
-            </div>
-            <div>
-              Email: <code className="bg-neutral-200/80 px-1 py-0.5 rounded text-neutral-900 font-mono">admin@smkn1songgom.sch.id</code>
-            </div>
-            <div>
-              Password: <code className="bg-neutral-200/80 px-1 py-0.5 rounded text-neutral-900 font-mono">admin123</code>
-            </div>
-          </div>
         </div>
 
       </div>

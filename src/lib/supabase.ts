@@ -363,13 +363,16 @@ export const dataService = {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPass = pass.trim();
 
+    const isPakAryanoe = cleanEmail === 'pakaryanoe@gmail.com' && cleanPass === '@PTKsonggom1';
+    const isLegacyAdmin = (cleanEmail === 'admin@smkn1songgom.sch.id' || cleanEmail === 'admin') && cleanPass === 'admin123';
+
     // 1. Try checking admin_users table in Supabase if client configured
     if (supabase) {
       try {
         const { data, error } = await supabase
           .from('admin_users')
           .select('*')
-          .or(`email.eq.${cleanEmail},email.eq.${cleanEmail === 'admin' ? 'admin@smkn1songgom.sch.id' : cleanEmail}`)
+          .ilike('email', cleanEmail)
           .eq('password', cleanPass)
           .eq('is_active', true)
           .maybeSingle();
@@ -386,17 +389,31 @@ export const dataService = {
           }
           return true;
         }
+
+        // Auto-seed into Supabase if logging in with valid admin credentials but row doesn't exist yet
+        if (isPakAryanoe) {
+          try {
+            await supabase.from('admin_users').upsert({
+              email: 'pakaryanoe@gmail.com',
+              password: '@PTKsonggom1',
+              full_name: 'Pak Aryanoe (Administrator GIS SMKN 1 Songgom)',
+              role: 'superadmin',
+              is_active: true,
+              last_login: new Date().toISOString(),
+            }, { onConflict: 'email' });
+          } catch (upsertErr) {
+            console.warn('Auto-seed admin in Supabase notice:', upsertErr);
+          }
+          this.setAdminLoggedIn(true);
+          return true;
+        }
       } catch (err) {
         console.warn('Supabase admin_users check error, trying fallback:', err);
       }
     }
 
-    // 2. Default credentials fallback (as specified in schema seed)
-    const isDefault =
-      (cleanEmail === 'admin@smkn1songgom.sch.id' || cleanEmail === 'admin') &&
-      cleanPass === 'admin123';
-
-    if (isDefault) {
+    // 2. Default credentials fallback
+    if (isPakAryanoe || isLegacyAdmin) {
       this.setAdminLoggedIn(true);
       return true;
     }

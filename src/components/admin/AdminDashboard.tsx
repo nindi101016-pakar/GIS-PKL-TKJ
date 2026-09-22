@@ -241,25 +241,29 @@ ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
 
 -- 6. POLICIES (PUBLIC READ & FULL ACCESS)
 DROP POLICY IF EXISTS "Public Read Admin Users" ON public.admin_users;
-CREATE POLICY "Public Read Admin Users" ON public.admin_users FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Full Access Admin Users" ON public.admin_users FOR ALL USING (true);
+DROP POLICY IF EXISTS "Full Access Admin Users" ON public.admin_users;
+DROP POLICY IF EXISTS "Allow All Admin Users" ON public.admin_users;
+CREATE POLICY "Allow All Admin Users" ON public.admin_users FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Public Read DUDI" ON public.dudi;
-CREATE POLICY "Public Read DUDI" ON public.dudi FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Full Access DUDI" ON public.dudi FOR ALL USING (true);
+DROP POLICY IF EXISTS "Full Access DUDI" ON public.dudi;
+DROP POLICY IF EXISTS "Allow All DUDI" ON public.dudi;
+CREATE POLICY "Allow All DUDI" ON public.dudi FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Public Read CMS" ON public.cms_content;
-CREATE POLICY "Public Read CMS" ON public.cms_content FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Full Access CMS" ON public.cms_content FOR ALL USING (true);
+DROP POLICY IF EXISTS "Full Access CMS" ON public.cms_content;
+DROP POLICY IF EXISTS "Allow All CMS" ON public.cms_content;
+CREATE POLICY "Allow All CMS" ON public.cms_content FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Public Read Gallery" ON public.gallery;
-CREATE POLICY "Public Read Gallery" ON public.gallery FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Full Access Gallery" ON public.gallery FOR ALL USING (true);
+DROP POLICY IF EXISTS "Full Access Gallery" ON public.gallery;
+DROP POLICY IF EXISTS "Allow All Gallery" ON public.gallery;
+CREATE POLICY "Allow All Gallery" ON public.gallery FOR ALL USING (true) WITH CHECK (true);
 
--- 7. SEED DEFAULT SUPERADMIN
+-- 7. SEED AKUN SUPERADMIN
 INSERT INTO public.admin_users (email, password, full_name, role, is_active)
-VALUES ('admin@smkn1songgom.sch.id', 'admin123', 'Administrator GIS SMKN 1 Songgom', 'superadmin', true)
-ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name, role = EXCLUDED.role;
+VALUES ('pakaryanoe@gmail.com', '@PTKsonggom1', 'Pak Aryanoe (Administrator GIS SMKN 1 Songgom)', 'superadmin', true)
+ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, full_name = EXCLUDED.full_name, role = EXCLUDED.role, is_active = EXCLUDED.is_active;
 `;
     navigator.clipboard.writeText(sqlText);
     setIsCopiedSql(true);
